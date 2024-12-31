@@ -118,7 +118,7 @@ when the text rendering causes edges to blend together.
 
 Set `edge_characters` to `EdgeCharacters::Single(..)` for a single dedicated edge character, or set it to
 `EdgeCharacters::Directional { .. }` to set different characters based on the "direction" of the edge, for
-example using '―', '|', '⟋', and '⟍' characters to draw edge "lines". Detecting the correct edge direction
+example using '―', '|', '/', and '\\' characters to draw edge "lines". Detecting the correct edge direction
 is a bit fuzzy, so you may need to experiment with color/depth/normal thresholds for good results.
 
 ```rust
@@ -127,8 +127,8 @@ RatatuiCameraEdgeDetection {
     edge_characters: Self::Directional {
         vertical: '|',
         horizontal: '―',
-        forward_diagonal: '⟋',
-        backward_diagonal: '⟍',
+        forward_diagonal: '/',
+        backward_diagonal: '\\',
     },
     edge_color: Some(ratatui::style::Color::Magenta),
     ..default()
@@ -149,6 +149,8 @@ that the following terminals display correctly:
 - Kitty
 - iTerm
 - WezTerm
+- Rio
+- Ghostty
 
 ...but any terminal with 24-bit color support should work fine, if its performance is adequate.
 

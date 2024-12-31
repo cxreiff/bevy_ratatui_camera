@@ -77,8 +77,8 @@ impl Default for EdgeCharacters {
         Self::Directional {
             vertical: '|',
             horizontal: '―',
-            forward_diagonal: '⟋',
-            backward_diagonal: '⟍',
+            forward_diagonal: '/',
+            backward_diagonal: '\\',
         }
     }
 }

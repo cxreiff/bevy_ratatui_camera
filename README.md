@@ -2,9 +2,10 @@
 
 Bevy inside the terminal!
 
-Uses bevy headless rendering, [ratatui](https://github.com/ratatui-org/ratatui), and
-[ratatui_image](https://github.com/benjajaja/ratatui-image) to print your bevy application's
-rendered frames to the terminal.
+Uses bevy headless rendering,
+[ratatui](https://github.com/ratatui-org/ratatui), and
+[ratatui_image](https://github.com/benjajaja/ratatui-image) to print your bevy
+application's rendered frames to the terminal.
 
 <p float="left">
 <img src="https://assets.cxreiff.com/github/cube.gif" width="30%" alt="cube">
@@ -14,8 +15,9 @@ rendered frames to the terminal.
 
 > examples/cube.rs, bevy many_foxes example, sponza test scene
 
-Use [bevy_ratatui](https://github.com/joshka/bevy_ratatui/tree/main) for setting ratatui up
-and receiving terminal events (keyboard, focus, mouse, paste, resize) inside bevy.
+Use [bevy_ratatui](https://github.com/joshka/bevy_ratatui/tree/main) for
+setting ratatui up and receiving terminal events (keyboard, focus, mouse,
+paste, resize) inside bevy.
 
 > [!IMPORTANT]  
 > This crate was renamed from `bevy_ratatui_render` to `bevy_ratatui_camera`.
@@ -68,17 +70,19 @@ fn draw_scene_system(
 }
 ```
 
-As shown above, when `RatatuiCameraPlugin` is added to your application, any bevy camera entities that you
-add a `RatatuiCamera` component to, will have a `RatatuiCameraWidget` inserted that you can query for. Each
-`RatatuiCameraWidget` is a ratatui widget that when drawn will print the most recent frame rendered by the
-associated bevy camera, as unicode characters.
+As shown above, when `RatatuiCameraPlugin` is added to your application, any
+bevy camera entities that you add a `RatatuiCamera` component to, will have
+a `RatatuiCameraWidget` inserted that you can query for. Each
+`RatatuiCameraWidget` is a ratatui widget that when drawn will print the most
+recent frame rendered by the associated bevy camera, as unicode characters.
 
 ## strategies
 
-The method by which the rendered image is converted into unicode characters depends on the
-`RatatuiCameraStrategy` that you choose. Insert a variant of the component alongside the `RatatuiCamera` to
-change the behavior from the default. Refer to the `RatatuiCameraStrategy` documentation for descriptions
-of each variant.
+The method by which the rendered image is converted into unicode characters
+depends on the `RatatuiCameraStrategy` that you choose. Insert a variant of the
+component alongside the `RatatuiCamera` to change the behavior from the
+default. Refer to the `RatatuiCameraStrategy` documentation for descriptions of
+each variant.
 
 For example, to use the "Luminance" strategy:
 
@@ -92,13 +96,15 @@ commands.spawn((
 
 ## autoresize
 
-By default, the size of the texture the camera renders to will stay constant, and when rendered to the ratatui
-buffer it will retain its aspect ratio. If you set the `autoresize` attribute to true, the render texture will
-be resized to fit the terminal window, including its aspect ratio.
+By default, the size of the texture the camera renders to will stay constant,
+and when rendered to the ratatui buffer it will retain its aspect ratio. If you
+set the `autoresize` attribute to true, the render texture will be resized to
+fit the terminal window, including its aspect ratio.
 
-You can also supply an optional `autoresize_function` that converts the terminal dimensions to the dimensions
-that will be used for resizing. This is useful for situations when you want to maintain a specific aspect ratio
-or resize to some fraction of the terminal window.
+You can also supply an optional `autoresize_function` that converts the
+terminal dimensions to the dimensions that will be used for resizing. This is
+useful for situations when you want to maintain a specific aspect ratio or
+resize to some fraction of the terminal window.
 
 ```rust
 RatatuiCamera {
@@ -110,16 +116,20 @@ RatatuiCamera {
 
 ## edge detection
 
-When using the `RatatuiCameraStrategy::Luminance` strategy and a 3d camera, you can also optionally insert a
-`RatatuiCameraEdgeDetection` component into your camera in order to add an edge detection step in the render
-graph. When printing to the ratatui buffer, special characters and an override color can be used based on the
-detected edges and their directions. This can be useful for certain visual effects, and distinguishing detail
-when the text rendering causes edges to blend together.
+When using the `RatatuiCameraStrategy::Luminance` strategy and a 3d camera, you
+can also optionally insert a `RatatuiCameraEdgeDetection` component into your
+camera in order to add an edge detection step in the render graph. When
+printing to the ratatui buffer, special characters and an override color can be
+used based on the detected edges and their directions. This can be useful for
+certain visual effects, and distinguishing detail when the text rendering
+causes edges to blend together.
 
-Set `edge_characters` to `EdgeCharacters::Single(..)` for a single dedicated edge character, or set it to
-`EdgeCharacters::Directional { .. }` to set different characters based on the "direction" of the edge, for
-example using '―', '|', '/', and '\\' characters to draw edge "lines". Detecting the correct edge direction
-is a bit fuzzy, so you may need to experiment with color/depth/normal thresholds for good results.
+Set `edge_characters` to `EdgeCharacters::Single(..)` for a single dedicated
+edge character, or set it to `EdgeCharacters::Directional { .. }` to set
+different characters based on the "direction" of the edge, for example using
+'―', '|', '/', and '\\' characters to draw edge "lines". Detecting the correct
+edge direction is a bit fuzzy, so you may need to experiment with
+color/depth/normal thresholds for good results.
 
 ```rust
 RatatuiCameraEdgeDetection {
@@ -137,13 +147,18 @@ RatatuiCameraEdgeDetection {
 
 ## multiple cameras
 
-`RatatuiCamera` can be added to multiple camera entities. To access the correct render, use marker components
-on your cameras to use when querying `RatatuiCameraWidget`.
+`RatatuiCamera` can be added to multiple camera entities. To access the correct
+render, use marker components on your cameras to use when querying
+`RatatuiCameraWidget`.
+
+If you need multiple cameras to render to one image, create one `RatatuiCamera`
+main camera that will define the dimensions, strategy, etcetera, and then create
+additional `RatatuiSubcamera` cameras that point to the main camera.
 
 ## supported terminals
 
-Printing to terminal relies on the terminal supporting 24-bit color. I've personally tested and confirmed
-that the following terminals display correctly:
+Printing to terminal relies on the terminal supporting 24-bit color. I've
+personally tested and confirmed that the following terminals display correctly:
 
 - Alacritty
 - Kitty
@@ -152,7 +167,8 @@ that the following terminals display correctly:
 - Rio
 - Ghostty
 
-...but any terminal with 24-bit color support should work fine, if its performance is adequate.
+...but any terminal with 24-bit color support should work fine, if its
+performance is adequate.
 
 ## compatibility
 

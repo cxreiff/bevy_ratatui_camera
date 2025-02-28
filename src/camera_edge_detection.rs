@@ -9,7 +9,7 @@ use bevy::{prelude::*, render::extract_component::ExtractComponent};
 ///
 /// Currently just works with `RatatuiCameraStrategy::Luminance` and 3d cameras.
 ///
-#[derive(Component, ExtractComponent, Clone, Copy)]
+#[derive(Component, ExtractComponent, Clone, Copy, Debug)]
 pub struct RatatuiCameraEdgeDetection {
     /// Width of the range used for detecting edges. Higher thickness value means a wider edge.
     pub thickness: f32,
@@ -57,7 +57,7 @@ impl Default for RatatuiCameraEdgeDetection {
 
 /// Specify how to handle rendering detected edges as unicode characters.
 ///
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum EdgeCharacters {
     /// Each character in a detected edge will be shown as a specified character.
     Single(char),
@@ -65,9 +65,13 @@ pub enum EdgeCharacters {
     /// Each character in a detected edge will be shown as one of four specified characters based
     /// on the dominant direction of the detected edge.
     Directional {
+        /// Character displayed when there is a vertical edge (e.g. a pipe character ).
         vertical: char,
+        /// Character displayed when there is a horizontal edge (e.g. an em dash ).
         horizontal: char,
+        /// Character displayed when there is a forward diagonal edge (e.g. a forward slash ).
         forward_diagonal: char,
+        /// Character displayed when there is a backward diagonal edge (e.g. a backslash ).
         backward_diagonal: char,
     },
 }

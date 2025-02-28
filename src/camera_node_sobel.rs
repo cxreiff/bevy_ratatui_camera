@@ -71,7 +71,7 @@ impl Plugin for RatatuiCameraNodeSobelPlugin {
 #[derive(Default)]
 pub struct RatatuiCameraNodeSobel;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
+#[derive(RenderLabel, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct RatatuiCameraNodeSobelLabel;
 
 impl ViewNode for RatatuiCameraNodeSobel {
@@ -85,7 +85,7 @@ impl ViewNode for RatatuiCameraNodeSobel {
 
     fn run<'w>(
         &self,
-        _graph: &mut RenderGraphContext,
+        _graph: &mut RenderGraphContext<'_>,
         render_context: &mut RenderContext<'w>,
         (entity, view_target, view_prepass_textures, view_uniform_offset, sobel_sender): QueryItem<
             'w,

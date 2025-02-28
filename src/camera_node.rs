@@ -40,7 +40,7 @@ impl Plugin for RatatuiCameraNodePlugin {
 #[derive(Default)]
 pub struct RatatuiCameraNode;
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash, RenderLabel)]
+#[derive(RenderLabel, Clone, Debug, Eq, Hash, PartialEq)]
 pub struct RatatuiCameraLabel;
 
 impl ViewNode for RatatuiCameraNode {

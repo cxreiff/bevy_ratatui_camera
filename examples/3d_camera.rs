@@ -13,10 +13,13 @@ use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
+use log::LevelFilter;
 
 mod shared;
 
 fn main() {
+    shared::setup_tui_logger(LevelFilter::Info);
+
     App::new()
         .add_plugins((
             DefaultPlugins

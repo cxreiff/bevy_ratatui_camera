@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_ratatui::event::KeyEvent;
 use bevy_ratatui::kitty::KittyEnabled;
 use crossterm::event::{KeyCode, KeyEventKind};
+use log::LevelFilter;
 use ratatui::Frame;
 use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
@@ -12,7 +13,7 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::Style;
 use ratatui::style::Stylize;
 use ratatui::widgets::Block;
-use tui_logger::TuiLoggerWidget;
+use tui_logger::{TuiLoggerWidget, init_logger, set_default_level};
 
 #[allow(dead_code)]
 #[derive(Component)]
@@ -22,6 +23,11 @@ pub struct Spinner;
 #[derive(Resource, Default)]
 pub struct Flags {
     pub debug: bool,
+}
+
+pub fn setup_tui_logger(filter: LevelFilter) {
+    init_logger(filter).unwrap();
+    set_default_level(filter);
 }
 
 #[allow(dead_code)]

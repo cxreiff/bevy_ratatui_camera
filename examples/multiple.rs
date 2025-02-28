@@ -15,6 +15,7 @@ use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
+use log::LevelFilter;
 use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
 use ratatui::layout::Layout;
@@ -22,6 +23,8 @@ use ratatui::layout::Layout;
 mod shared;
 
 fn main() {
+    shared::setup_tui_logger(LevelFilter::Info);
+
     App::new()
         .add_plugins((
             DefaultPlugins

@@ -65,6 +65,7 @@ use crate::{
 /// }
 /// ```
 ///
+#[derive(Debug)]
 pub struct RatatuiCameraPlugin;
 
 impl Plugin for RatatuiCameraPlugin {

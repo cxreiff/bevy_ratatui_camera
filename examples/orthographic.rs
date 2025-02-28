@@ -17,14 +17,11 @@ use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use log::LevelFilter;
-use tui_logger::init_logger;
-use tui_logger::set_default_level;
 
 mod shared;
 
 fn main() {
-    init_logger(LevelFilter::Info).unwrap();
-    set_default_level(LevelFilter::Info);
+    shared::setup_tui_logger(LevelFilter::Info);
 
     App::new()
         .add_plugins((

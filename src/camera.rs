@@ -3,7 +3,21 @@ use bevy::prelude::*;
 /// Spawn this component with your bevy camera in order to send each frame's rendered image to
 /// a RatatuiCameraWidget that will be inserted into the same camera entity.
 ///
-#[derive(Component, Clone)]
+/// Example:
+///
+/// ```no_run
+/// # use bevy::prelude::*;
+/// # use bevy_ratatui_camera::RatatuiCamera;
+/// #
+/// # fn setup_scene_system(mut commands: Commands) {
+/// commands.spawn((
+///     RatatuiCamera::default(),
+///     Camera3d::default(),
+/// ));
+/// # };
+/// ```
+///
+#[derive(Component, Clone, Debug)]
 #[require(RatatuiCameraStrategy)]
 pub struct RatatuiCamera {
     /// Dimensions (width, height) of the image the camera will render to.
@@ -30,6 +44,7 @@ impl Default for RatatuiCamera {
 }
 
 impl RatatuiCamera {
+    /// Creates a new RatatuiCamera that renders to an image of the provided dimensions.
     pub fn new(dimensions: (u32, u32)) -> Self {
         Self {
             dimensions,
@@ -37,6 +52,9 @@ impl RatatuiCamera {
         }
     }
 
+    /// Creates a new RatatuiCamera that will automatically resize to the terminal dimensions.
+    ///
+    /// Providing dimensions is not necessary as they will be replaced on the first frame.
     pub fn autoresize() -> Self {
         Self {
             autoresize: true,
@@ -44,27 +62,65 @@ impl RatatuiCamera {
         }
     }
 
+    /// Mutates RatatuiCamera to use new provided dimensions.
     pub fn with_dimensions(mut self, dimensions: (u32, u32)) -> Self {
         self.dimensions = dimensions;
         self
     }
 
+    /// Mutates RatatuiCamera to use new provided autoresize setting.
     pub fn with_autoresize(mut self, autoresize: bool) -> Self {
         self.autoresize = autoresize;
         self
     }
 
+    /// Mutates RatatuiCamera to use new provided autoresize function.
     pub fn with_autoresize_fn(mut self, autoresize_fn: fn((u32, u32)) -> (u32, u32)) -> Self {
         self.autoresize_fn = autoresize_fn;
         self
     }
 }
 
+/// When inserted into a camera entity, rather than creating its own render texture for unicode
+/// conversion, this camera will render to the texture of the RatatuiCamera camera entity indicated
+/// by the provided entity id. The composite render from both cameras will then be converted to
+/// unicode as one image.
+///
+/// Example:
+///
+/// ```no_run
+/// # use bevy::prelude::*;
+/// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiSubcamera};
+/// #
+/// # fn setup_scene_system(mut commands: Commands) {
+/// let main_camera = commands.spawn((
+///     RatatuiCamera::default(),
+///     Camera3d::default(),
+/// )).id();
+///
+/// commands.spawn((
+///     RatatuiSubcamera(main_camera),
+///     Camera3d::default(),
+/// ));
+/// # };
+/// ```
+///
+#[derive(Component, Debug)]
+// TODO: When bevy 0.16 arrives, use new relations feature.
+// #[relationship(relationship_target = RatatuiCameraTargetedBy)]
+pub struct RatatuiSubcamera(pub Entity);
+
+// TODO: When bevy 0.16 arrives, use new relations feature.
+// /// All camera entities that are rendering to this camera entity's render target.
+// #[derive(Component, Debug)]
+// #[relationship_target(relationship = RatatuiCameraTargeting)]
+// struct RatatuiCameraTargetedBy(Vec<Entity>);
+
 /// Specify the strategy used for converting the camera's rendered image to unicode characters for
 /// the terminal buffer. Insert a variant of this component alongside your `RatatuiCamera` to
 /// change the default behavior.
 ///
-#[derive(Component, Default, Clone)]
+#[derive(Component, Clone, Debug, Default)]
 pub enum RatatuiCameraStrategy {
     /// Print to the terminal using unicode halfblock characters. By using both the halfblock
     /// (foreground) color and the background color, we can draw two pixels per buffer cell.
@@ -128,7 +184,7 @@ impl RatatuiCameraStrategy {
 /// # };
 /// ```
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LuminanceConfig {
     /// The list of characters, in increasing order of opacity, to use for printing. For example,
     /// put an '@' symbol after a '+' symbol because it is more "opaque", taking up more space in

@@ -12,13 +12,14 @@ use bevy::{
 };
 use crossbeam_channel::{Receiver, Sender};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ImageSender {
     pub sender: Sender<Vec<u8>>,
     pub sender_image: Handle<Image>,
     pub buffer: Buffer,
 }
 
+#[derive(Debug)]
 pub struct ImageReceiver {
     pub receiver: Receiver<Vec<u8>>,
     pub receiver_image: Image,

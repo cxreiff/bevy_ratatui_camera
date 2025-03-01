@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy_ratatui::event::KeyEvent;
 use bevy_ratatui::kitty::KittyEnabled;
 use crossterm::event::{KeyCode, KeyEventKind};
+use ratatui::Frame;
 use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
 use ratatui::layout::Layout;
@@ -11,7 +12,6 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::Style;
 use ratatui::style::Stylize;
 use ratatui::widgets::Block;
-use ratatui::Frame;
 use tui_logger::TuiLoggerWidget;
 
 #[allow(dead_code)]

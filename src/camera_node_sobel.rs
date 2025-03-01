@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use bevy::{
-    asset::{embedded_asset, io::AssetSourceId, AssetPath},
+    asset::{AssetPath, embedded_asset, io::AssetSourceId},
     core_pipeline::{
         core_3d::graph::{Core3d, Node3d},
         fullscreen_vertex_shader::fullscreen_shader_vertex_state,
@@ -10,32 +10,32 @@ use bevy::{
     ecs::query::QueryItem,
     prelude::*,
     render::{
+        Render, RenderApp, RenderSet,
         extract_component::ExtractComponentPlugin,
         render_asset::RenderAssets,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
-            binding_types::{
-                sampler, texture_2d, texture_depth_2d, uniform_buffer, uniform_buffer_sized,
-            },
             BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedPipelineState,
             CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState, MultisampleState,
             Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment,
             RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType,
             SamplerDescriptor, ShaderStages, ShaderType, TextureFormat, TextureSampleType,
             UniformBuffer,
+            binding_types::{
+                sampler, texture_2d, texture_depth_2d, uniform_buffer, uniform_buffer_sized,
+            },
         },
         renderer::{RenderContext, RenderDevice, RenderQueue},
         sync_world::MainEntity,
         texture::GpuImage,
         view::{ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms},
-        Render, RenderApp, RenderSet,
     },
     utils::HashMap,
 };
 
-use crate::{camera_readback::RatatuiSobelSender, RatatuiCameraEdgeDetection};
+use crate::{RatatuiCameraEdgeDetection, camera_readback::RatatuiSobelSender};
 
 pub struct RatatuiCameraNodeSobelPlugin;
 

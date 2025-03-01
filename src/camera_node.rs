@@ -6,6 +6,7 @@ use bevy::{
     ecs::query::QueryItem,
     prelude::*,
     render::{
+        RenderApp,
         render_asset::RenderAssets,
         render_graph::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
@@ -15,7 +16,6 @@ use bevy::{
         },
         renderer::{RenderContext, RenderDevice, RenderQueue},
         texture::GpuImage,
-        RenderApp,
     },
 };
 

@@ -25,6 +25,7 @@ pub struct Flags {
     pub debug: bool,
 }
 
+#[allow(dead_code)]
 pub fn setup_tui_logger(filter: LevelFilter) {
     init_logger(filter).unwrap();
     set_default_level(filter);

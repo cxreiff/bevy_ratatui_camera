@@ -116,6 +116,13 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                 }
             };
 
+            if strategy_config
+                .mask_color
+                .is_some_and(|mask_color| mask_color == color)
+            {
+                continue;
+            }
+
             if let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) {
                 cell.set_fg(color).set_char(character);
             }

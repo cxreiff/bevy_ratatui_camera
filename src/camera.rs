@@ -132,7 +132,7 @@ pub enum RatatuiCameraStrategy {
     Luminance(LuminanceConfig),
 
     /// Does not print characters by itself, but edge detection will still print. Use with edge
-    /// detection for a "wireframe" type look.
+    /// detection for a "wireframe".
     None,
 }
 
@@ -167,7 +167,7 @@ impl RatatuiCameraStrategy {
 /// # Example:
 ///
 /// The following would configure the widget to multiply each pixel's luminance value by 5.0, use
-/// ' ' and '.' for dimmer areas, and use '+' and '#' for brighter areas:
+/// ' ' and '.' for dimmer areas, use '+' and '#' for brighter areas, and skip using a mask color:
 ///
 /// ```no_run
 /// # use bevy::prelude::*;
@@ -179,6 +179,7 @@ impl RatatuiCameraStrategy {
 ///     RatatuiCameraStrategy::Luminance(LuminanceConfig {
 ///         luminance_characters: vec![' ', '.', '+', '#'],
 ///         luminance_scale: 5.0,
+///         mask_color: None,
 ///     }),
 /// # ));
 /// # };
@@ -196,6 +197,18 @@ pub struct LuminanceConfig {
     /// a character. Because most scenes do not occupy the full range of luminance between 0.0 and
     /// 1.0, each luminance value is multiplied by a scaling value first.
     pub luminance_scale: f32,
+
+    /// An optional mask color for creating transparency effects. Skips writing any character to
+    /// the terminal buffer that matches the provided color.
+    ///
+    /// For example, set it to `Some(Color::Rgb(0, 0, 0)` in a scene with a foreground object in
+    /// front of a black background, to render that object without the background space overwriting
+    /// the cells currently in the buffer.
+    ///
+    /// Useful for compositing together multiple rendered layers. There should generally always be
+    /// at least one non-masked layer furthest back, as otherwise stray cells in the terminal
+    /// buffer might not get replaced between frames.
+    pub mask_color: Option<ratatui::style::Color>,
 }
 
 impl LuminanceConfig {
@@ -219,6 +232,7 @@ impl Default for LuminanceConfig {
         Self {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
+            mask_color: None,
         }
     }
 }

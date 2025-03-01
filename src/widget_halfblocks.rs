@@ -2,8 +2,8 @@ use image::DynamicImage;
 use ratatui::widgets::Widget;
 use ratatui::{prelude::*, widgets::WidgetRef};
 use ratatui_image::{
-    picker::{Picker, ProtocolType},
     FilterType, Resize,
+    picker::{Picker, ProtocolType},
 };
 
 pub struct RatatuiCameraWidgetHalfblocks<'a> {

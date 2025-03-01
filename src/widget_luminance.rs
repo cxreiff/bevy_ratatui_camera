@@ -65,14 +65,14 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
             )
         });
 
-        for (index, (mut character, mut color)) in color_characters.iter().enumerate() {
+        for (index, &(mut character, mut color)) in color_characters.iter().enumerate() {
             let x = index as u16 % camera_image.width() as u16;
             let y = index as u16 / camera_image.width() as u16;
             if x >= render_area.width || y >= render_area.height {
                 continue;
             }
 
-            if let (Some(ref sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
+            if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
                 if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
                     continue;
                 }

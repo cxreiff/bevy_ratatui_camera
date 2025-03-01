@@ -2,7 +2,7 @@
 name = "bevy_ratatui_camera"
 description = "A bevy plugin for rendering your bevy app to the terminal using ratatui."
 version = "0.8.2"
-edition = "2021"
+edition = "2024"
 authors = ["cxreiff <cooper@cxreiff.com>"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"

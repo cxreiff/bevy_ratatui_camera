@@ -2,19 +2,19 @@ use bevy::{
     core_pipeline::prepass::{DepthPrepass, NormalPrepass},
     prelude::*,
     render::{
+        Render, RenderApp, RenderSet,
         camera::RenderTarget,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         renderer::RenderDevice,
-        Render, RenderApp, RenderSet,
     },
 };
 use bevy_ratatui::{event::ResizeEvent, terminal::RatatuiContext};
 
 use crate::{
-    camera_image_pipe::{
-        create_image_pipe, receive_image, send_image_buffer, ImageReceiver, ImageSender,
-    },
     RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy, RatatuiCameraWidget,
+    camera_image_pipe::{
+        ImageReceiver, ImageSender, create_image_pipe, receive_image, send_image_buffer,
+    },
 };
 
 pub struct RatatuiCameraReadbackPlugin;

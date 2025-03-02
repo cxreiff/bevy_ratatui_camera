@@ -173,6 +173,6 @@ performance is adequate.
 
 | bevy  | bevy_ratatui_camera |
 |-------|---------------------|
-| 0.15  | 0.9                 |
+| 0.15  | 0.10                |
 | 0.14  | 0.6                 |
 

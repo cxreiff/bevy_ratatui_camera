@@ -81,7 +81,7 @@ pub fn debug_frame(
 ) -> Rect {
     let mut block = Block::bordered()
         .bg(ratatui::style::Color::Rgb(0, 0, 0))
-        .border_style(Style::default().bg(ratatui::style::Color::Rgb(0, 0, 0)))
+        .border_style(Style::default().bg(ratatui::style::Color::Black))
         .title_bottom("[q for quit]")
         .title_bottom("[d for debug]")
         .title_bottom("[p for panic]")

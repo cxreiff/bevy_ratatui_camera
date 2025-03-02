@@ -8,7 +8,6 @@ use bevy::{
         renderer::RenderDevice,
     },
 };
-use bevy_ratatui::{event::ResizeEvent, terminal::RatatuiContext};
 
 use crate::{
     RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy, RatatuiCameraWidget,
@@ -32,11 +31,9 @@ impl Plugin for RatatuiCameraReadbackPlugin {
         .add_observer(handle_ratatui_edge_detection_insert_system)
         .add_observer(handle_ratatui_edge_detection_removal_system)
         .add_observer(handle_ratatui_subcamera_insert_system)
-        .add_systems(PostStartup, initial_autoresize_system)
         .add_systems(
             First,
             (
-                autoresize_ratatui_camera_system,
                 handle_camera_targeting_events_system,
                 (
                     update_ratatui_camera_readback_system,
@@ -75,6 +72,11 @@ pub struct CameraTargetingEvent {
     pub target_entity: Entity,
 }
 
+#[derive(Event)]
+pub struct RatatuiCameraResize {
+    pub dimensions: (u32, u32),
+}
+
 fn handle_ratatui_camera_insert_system(
     trigger: Trigger<OnInsert, RatatuiCamera>,
     mut commands: Commands,
@@ -84,6 +86,10 @@ fn handle_ratatui_camera_insert_system(
     render_device: Res<RenderDevice>,
 ) {
     if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.entity()) {
+        commands
+            .entity(trigger.entity())
+            .observe(handle_ratatui_camera_resize);
+
         insert_camera_readback_components(
             &mut commands,
             trigger.entity(),
@@ -93,6 +99,14 @@ fn handle_ratatui_camera_insert_system(
             &mut camera_targeting_event,
         );
     }
+}
+
+fn handle_ratatui_camera_resize(
+    trigger: Trigger<RatatuiCameraResize>,
+    mut ratatui_cameras: Query<&mut RatatuiCamera>,
+) {
+    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.entity()).unwrap();
+    ratatui_camera.dimensions = trigger.event().dimensions;
 }
 
 fn handle_ratatui_subcamera_insert_system(
@@ -213,18 +227,18 @@ fn receive_sobel_images_system(mut sobel_receivers: Query<&mut RatatuiSobelRecei
 
 fn create_ratatui_camera_widgets_system(
     mut commands: Commands,
-    ratatui_cameras: Query<
-        (
-            Entity,
-            &RatatuiCameraStrategy,
-            Option<&RatatuiCameraEdgeDetection>,
-            &RatatuiCameraReceiver,
-            Option<&RatatuiSobelReceiver>,
-        ),
-        With<RatatuiCamera>,
-    >,
+    ratatui_cameras: Query<(
+        Entity,
+        &RatatuiCamera,
+        &RatatuiCameraStrategy,
+        Option<&RatatuiCameraEdgeDetection>,
+        &RatatuiCameraReceiver,
+        Option<&RatatuiSobelReceiver>,
+    )>,
 ) {
-    for (entity_id, strategy, edge_detection, camera_receiver, sobel_receiver) in &ratatui_cameras {
+    for (entity_id, ratatui_camera, strategy, edge_detection, camera_receiver, sobel_receiver) in
+        &ratatui_cameras
+    {
         let mut entity = commands.entity(entity_id);
 
         let camera_image = match camera_receiver.receiver_image.clone().try_into_dynamic() {
@@ -240,6 +254,8 @@ fn create_ratatui_camera_widgets_system(
         });
 
         let widget = RatatuiCameraWidget {
+            entity: entity_id,
+            ratatui_camera: ratatui_camera.clone(),
             camera_image,
             sobel_image,
             strategy: strategy.clone(),
@@ -247,32 +263,6 @@ fn create_ratatui_camera_widgets_system(
         };
 
         entity.insert(widget);
-    }
-}
-
-/// Sends a single resize event during startup.
-fn initial_autoresize_system(
-    ratatui: Res<RatatuiContext>,
-    mut resize_events: EventWriter<ResizeEvent>,
-) {
-    if let Ok(size) = ratatui.size() {
-        resize_events.send(ResizeEvent(size));
-    }
-}
-
-/// Autoresizes the send/receive textures to fit the terminal dimensions.
-fn autoresize_ratatui_camera_system(
-    mut ratatui_cameras: Query<&mut RatatuiCamera>,
-    mut resize_events: EventReader<ResizeEvent>,
-) {
-    if let Some(ResizeEvent(dimensions)) = resize_events.read().last() {
-        for mut ratatui_camera in &mut ratatui_cameras {
-            if ratatui_camera.autoresize {
-                let terminal_dimensions = (dimensions.width as u32, dimensions.height as u32 * 2);
-                let new_dimensions = (ratatui_camera.autoresize_fn)(terminal_dimensions);
-                ratatui_camera.dimensions = new_dimensions;
-            }
-        }
     }
 }
 

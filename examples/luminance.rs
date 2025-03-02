@@ -11,7 +11,6 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
-use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
@@ -52,19 +51,17 @@ fn setup_scene_system(
     shared::spawn_3d_scene(&mut commands, &mut meshes, &mut materials);
 
     commands.spawn((
-        RatatuiCamera::autoresize(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            luminance_scale: 11.0,
-            ..default()
-        }),
+        RatatuiCamera::default(),
+        RatatuiCameraStrategy::luminance_misc(),
         Camera3d::default(),
         Transform::from_xyz(2.5, 2.5, 2.5).looking_at(Vec3::ZERO, Vec3::Z),
     ));
 }
 
 pub fn draw_scene_system(
+    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    ratatui_camera_widget: Query<&RatatuiCameraWidget>,
+    camera_widget: Query<&RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -72,9 +69,9 @@ pub fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        if let Ok(camera_widget) = ratatui_camera_widget.get_single() {
-            frame.render_widget(camera_widget, area);
-        }
+        camera_widget
+            .single()
+            .render_autoresize(area, frame.buffer_mut(), &mut commands);
     })?;
 
     Ok(())

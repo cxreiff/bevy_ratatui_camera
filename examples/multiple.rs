@@ -10,7 +10,6 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
-use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
@@ -55,7 +54,7 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig::default()),
+        RatatuiCameraStrategy::luminance_misc(),
         Camera3d::default(),
         Transform::from_xyz(0., 3., 0.).looking_at(Vec3::ZERO, Vec3::Z),
     ));
@@ -66,15 +65,16 @@ fn setup_scene_system(
     ));
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig::default()),
+        RatatuiCameraStrategy::luminance_braille(),
         Camera3d::default(),
         Transform::from_xyz(2., 2., 2.).looking_at(Vec3::ZERO, Vec3::Z),
     ));
 }
 
 pub fn draw_scene_system(
+    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    ratatui_camera_widgets: Query<&RatatuiCameraWidget>,
+    camera_widgets: Query<&RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -82,10 +82,7 @@ pub fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        let widgets = ratatui_camera_widgets
-            .iter()
-            .enumerate()
-            .collect::<Vec<_>>();
+        let widgets = camera_widgets.iter().enumerate().collect::<Vec<_>>();
 
         let layout = Layout::new(
             Direction::Horizontal,
@@ -94,7 +91,7 @@ pub fn draw_scene_system(
         .split(area);
 
         for (i, widget) in widgets {
-            frame.render_widget(widget, layout[i]);
+            widget.render_autoresize(layout[i], frame.buffer_mut(), &mut commands);
         }
     })?;
 

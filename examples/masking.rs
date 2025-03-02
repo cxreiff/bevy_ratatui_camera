@@ -80,6 +80,7 @@ fn setup_scene_system(
 }
 
 pub fn draw_scene_system(
+    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
     foreground_widget: Query<&RatatuiCameraWidget, With<Foreground>>,
     background_widget: Query<&RatatuiCameraWidget, With<Background>>,
@@ -90,8 +91,12 @@ pub fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        frame.render_widget(background_widget.single(), area);
-        frame.render_widget(foreground_widget.single(), area);
+        background_widget
+            .single()
+            .render_autoresize(area, frame.buffer_mut(), &mut commands);
+        foreground_widget
+            .single()
+            .render_autoresize(area, frame.buffer_mut(), &mut commands);
     })?;
 
     Ok(())

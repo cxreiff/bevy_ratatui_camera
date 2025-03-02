@@ -21,6 +21,7 @@ use crate::{
 /// # use bevy_ratatui::RatatuiPlugins;
 /// # use bevy_ratatui::terminal::RatatuiContext;
 /// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiCameraPlugin, RatatuiCameraWidget};
+/// # use ratatui::prelude::Widget;
 /// #
 /// fn main() {
 ///     App::new()
@@ -58,7 +59,7 @@ use crate::{
 ///     camera_widget: Query<&RatatuiCameraWidget>,
 /// ) -> std::io::Result<()> {
 ///     ratatui.draw(|frame| {
-///         frame.render_widget(camera_widget.single(), frame.area());
+///         camera_widget.single().render(frame.area(), frame.buffer_mut());
 ///     })?;
 ///
 ///     Ok(())

@@ -22,23 +22,12 @@ use bevy::prelude::*;
 pub struct RatatuiCamera {
     /// Dimensions (width, height) of the image the camera will render to.
     pub dimensions: (u32, u32),
-
-    /// If true, the rendered image dimensions will be resized to match the size and aspect ratio
-    /// of the terminal window (at startup and whenever a terminal resize event is received).
-    pub autoresize: bool,
-
-    /// When autoresize is true, this function will be used to transform the new terminal
-    /// dimensions into the rendered image dimensions. For example, use `|(w, h)| (w*4, h*3)` to
-    /// maintain a 4:3 aspect ratio.
-    pub autoresize_fn: fn((u32, u32)) -> (u32, u32),
 }
 
 impl Default for RatatuiCamera {
     fn default() -> Self {
         Self {
             dimensions: (256, 256),
-            autoresize: false,
-            autoresize_fn: |(w, h)| (w * 2, h * 2),
         }
     }
 }
@@ -46,38 +35,7 @@ impl Default for RatatuiCamera {
 impl RatatuiCamera {
     /// Creates a new RatatuiCamera that renders to an image of the provided dimensions.
     pub fn new(dimensions: (u32, u32)) -> Self {
-        Self {
-            dimensions,
-            ..default()
-        }
-    }
-
-    /// Creates a new RatatuiCamera that will automatically resize to the terminal dimensions.
-    ///
-    /// Providing dimensions is not necessary as they will be replaced on the first frame.
-    pub fn autoresize() -> Self {
-        Self {
-            autoresize: true,
-            ..default()
-        }
-    }
-
-    /// Mutates RatatuiCamera to use new provided dimensions.
-    pub fn with_dimensions(mut self, dimensions: (u32, u32)) -> Self {
-        self.dimensions = dimensions;
-        self
-    }
-
-    /// Mutates RatatuiCamera to use new provided autoresize setting.
-    pub fn with_autoresize(mut self, autoresize: bool) -> Self {
-        self.autoresize = autoresize;
-        self
-    }
-
-    /// Mutates RatatuiCamera to use new provided autoresize function.
-    pub fn with_autoresize_fn(mut self, autoresize_fn: fn((u32, u32)) -> (u32, u32)) -> Self {
-        self.autoresize_fn = autoresize_fn;
-        self
+        Self { dimensions }
     }
 }
 

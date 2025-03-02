@@ -50,15 +50,16 @@ fn setup_scene_system(
     shared::spawn_2d_scene(&mut commands, &mut meshes, &mut materials);
 
     commands.spawn((
-        RatatuiCamera::autoresize(),
+        RatatuiCamera::default(),
         RatatuiCameraStrategy::Luminance(LuminanceConfig::default()),
         Camera2d,
     ));
 }
 
 pub fn draw_scene_system(
+    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    ratatui_camera_widget: Query<&RatatuiCameraWidget>,
+    camera_widget: Query<&RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -66,9 +67,9 @@ pub fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        if let Ok(camera_widget) = ratatui_camera_widget.get_single() {
-            frame.render_widget(camera_widget, area);
-        }
+        camera_widget
+            .single()
+            .render_autoresize(area, frame.buffer_mut(), &mut commands);
     })?;
 
     Ok(())

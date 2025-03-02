@@ -63,7 +63,7 @@ fn draw_scene_system(
     camera_widget: Query<&RatatuiCameraWidget>,
 ) -> std::io::Result<()> {
     ratatui.draw(|frame| {
-        frame.render_widget(camera_widget.single(), frame.area());
+        camera_widget.single().render(frame.area(), frame.buffer_mut());
     })?;
 
     Ok(())
@@ -97,21 +97,20 @@ commands.spawn((
 ## autoresize
 
 By default, the size of the texture the camera renders to will stay constant,
-and when rendered to the ratatui buffer it will retain its aspect ratio. If you
-set the `autoresize` attribute to true, the render texture will be resized to
-fit the terminal window, including its aspect ratio.
-
-You can also supply an optional `autoresize_function` that converts the
-terminal dimensions to the dimensions that will be used for resizing. This is
-useful for situations when you want to maintain a specific aspect ratio or
-resize to some fraction of the terminal window.
+and when rendered to the ratatui buffer with `RatatuiCameraWidget::render(...)`
+it will retain its aspect ratio. If you use the
+`RatatuiCameraWidget::render_autoresize` variant instead, whenever the render
+texture doesn't match the size of the render area, rendering will be skipped
+that frame and a resize of the render texture will be triggered instead.
 
 ```rust
-RatatuiCamera {
-    autoresize: true,
-    autoresize_fn: |(w, h)| (w * 4, h * 3),
-    ..default()
-}
+ratatui.draw(|frame| {
+    camera_widget.single().render_autoresize(
+        frame.area(),
+        frame.buffer_mut(),
+        &mut commands,
+    );
+})?;
 ```
 
 ## edge detection

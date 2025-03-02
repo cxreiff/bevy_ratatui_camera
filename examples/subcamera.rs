@@ -15,9 +15,6 @@ use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use bevy_ratatui_camera::RatatuiSubcamera;
 use log::LevelFilter;
-use ratatui::layout::Constraint;
-use ratatui::layout::Direction;
-use ratatui::layout::Layout;
 
 mod shared;
 
@@ -54,7 +51,7 @@ fn setup_scene_system(
 
     let main_camera_id = commands
         .spawn((
-            RatatuiCamera::autoresize(),
+            RatatuiCamera::default(),
             Camera3d::default(),
             Transform::from_xyz(2., 1., 1.).looking_at(Vec3::Y, Vec3::Z),
         ))
@@ -68,8 +65,9 @@ fn setup_scene_system(
 }
 
 pub fn draw_scene_system(
+    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    ratatui_camera_widgets: Query<&RatatuiCameraWidget>,
+    camera_widget: Query<&RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -77,20 +75,9 @@ pub fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        let widgets = ratatui_camera_widgets
-            .iter()
-            .enumerate()
-            .collect::<Vec<_>>();
-
-        let layout = Layout::new(
-            Direction::Horizontal,
-            vec![Constraint::Fill(1); widgets.len()],
-        )
-        .split(area);
-
-        for (i, widget) in widgets {
-            frame.render_widget(widget, layout[i]);
-        }
+        camera_widget
+            .single()
+            .render_autoresize(area, frame.buffer_mut(), &mut commands);
     })?;
 
     Ok(())

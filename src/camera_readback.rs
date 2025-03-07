@@ -10,8 +10,8 @@ use bevy::{
 };
 
 use crate::{
-    RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy, RatatuiCameraWidget,
-    RatatuiSubcamera,
+    RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraSet, RatatuiCameraStrategy,
+    RatatuiCameraWidget, RatatuiSubcamera,
     camera_image_pipe::{
         ImageReceiver, ImageSender, create_image_pipe, receive_image, send_image_buffer,
     },
@@ -34,16 +34,17 @@ impl Plugin for RatatuiCameraReadbackPlugin {
         .add_systems(
             First,
             (
-                handle_camera_targeting_events_system,
+                create_ratatui_camera_widgets_system,
                 (
+                    handle_camera_targeting_events_system,
                     update_ratatui_camera_readback_system,
                     update_ratatui_edge_detection_readback_system,
                     receive_camera_images_system,
                     receive_sobel_images_system,
                 ),
-                create_ratatui_camera_widgets_system,
             )
-                .chain(),
+                .chain()
+                .in_set(RatatuiCameraSet),
         );
 
         let render_app = app.sub_app_mut(RenderApp);

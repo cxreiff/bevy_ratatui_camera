@@ -140,12 +140,12 @@ pub enum InputState {
 
 #[allow(dead_code)]
 pub fn handle_input_system(
-    mut rat_events: EventReader<KeyEvent>,
+    mut ratatui_events: EventReader<KeyEvent>,
     mut exit: EventWriter<AppExit>,
     mut flags: ResMut<Flags>,
     mut input: ResMut<InputState>,
 ) {
-    for key_event in rat_events.read() {
+    for key_event in ratatui_events.read() {
         match key_event.kind {
             KeyEventKind::Press | KeyEventKind::Repeat => match key_event.code {
                 KeyCode::Char('q') => {

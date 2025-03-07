@@ -79,7 +79,7 @@ fn setup_scene_system(
     ));
 }
 
-pub fn draw_scene_system(
+fn draw_scene_system(
     mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
     foreground_widget: Query<&RatatuiCameraWidget, With<Foreground>>,

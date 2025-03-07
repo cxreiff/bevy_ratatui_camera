@@ -35,8 +35,8 @@ impl Plugin for RatatuiCameraReadbackPlugin {
             First,
             (
                 create_ratatui_camera_widgets_system,
+                handle_camera_targeting_events_system,
                 (
-                    handle_camera_targeting_events_system,
                     update_ratatui_camera_readback_system,
                     update_ratatui_edge_detection_readback_system,
                     receive_camera_images_system,

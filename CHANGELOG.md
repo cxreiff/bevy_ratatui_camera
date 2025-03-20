@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.10.0...v0.11.0) - 2025-03-20
+
+### Other
+
+- mask on alpha instead of color
+- insert/update/remove user-facing components example
+- added a system set for First schedule systems
+
 ## [0.10.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.9.0...v0.10.0) - 2025-03-02
 
 ### Other

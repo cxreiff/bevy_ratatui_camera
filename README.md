@@ -3,8 +3,9 @@
 Bevy inside the terminal!
 
 Uses bevy headless rendering,
-[ratatui](https://github.com/ratatui-org/ratatui), and
-[ratatui_image](https://github.com/benjajaja/ratatui-image) to print your bevy
+[ratatui](https://github.com/ratatui-org/ratatui),
+[ratatui_image](https://github.com/benjajaja/ratatui-image), and
+[bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) to print your bevy
 application's rendered frames to the terminal.
 
 <p float="left">
@@ -15,9 +16,9 @@ application's rendered frames to the terminal.
 
 > examples/cube.rs, bevy many_foxes example, sponza test scene
 
-Use [bevy_ratatui](https://github.com/joshka/bevy_ratatui/tree/main) for
-setting ratatui up and receiving terminal events (keyboard, focus, mouse,
-paste, resize) inside bevy.
+Use [bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) for setting ratatui
+up and receiving terminal events (keyboard, focus, mouse, paste, resize) inside
+bevy.
 
 > [!IMPORTANT]  
 > This crate was renamed from `bevy_ratatui_render` to `bevy_ratatui_camera`.

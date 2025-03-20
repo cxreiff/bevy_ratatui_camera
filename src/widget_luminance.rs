@@ -51,7 +51,7 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
             height: camera_image.height() as u16 / 2,
         };
 
-        let color_characters = convert_image_to_color_characters(
+        let cell_candidates = convert_image_to_cell_candidates(
             &camera_image,
             &strategy_config.luminance_characters,
             strategy_config.luminance_scale,
@@ -65,7 +65,7 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
             )
         });
 
-        for (index, &(mut character, mut color)) in color_characters.iter().enumerate() {
+        for (index, (mut character, mut color, mut skip)) in cell_candidates.enumerate() {
             let x = index as u16 % camera_image.width() as u16;
             let y = index as u16 / camera_image.width() as u16;
             if x >= render_area.width || y >= render_area.height {
@@ -96,30 +96,32 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                         if is_max_sobel(sobel_value[0]) {
                             character = vertical;
                             color = edge_detection.edge_color.unwrap_or(color);
+                            skip = false;
                         } else if is_max_sobel(sobel_value[1]) {
                             character = horizontal;
                             color = edge_detection.edge_color.unwrap_or(color);
+                            skip = false;
                         } else if is_max_sobel(sobel_value[2]) {
                             character = forward_diagonal;
                             color = edge_detection.edge_color.unwrap_or(color);
+                            skip = false;
                         } else if is_max_sobel(sobel_value[3]) {
                             character = backward_diagonal;
                             color = edge_detection.edge_color.unwrap_or(color);
+                            skip = false;
                         }
                     }
                     crate::EdgeCharacters::Single(edge_character) => {
                         if sobel_value.0.iter().any(|val| *val > 0) {
                             character = edge_character;
                             color = edge_detection.edge_color.unwrap_or(color);
+                            skip = false;
                         }
                     }
                 }
             };
 
-            if strategy_config
-                .mask_color
-                .is_some_and(|mask_color| mask_color == color)
-            {
+            if strategy_config.transparent && skip {
                 continue;
             }
 
@@ -130,52 +132,51 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
     }
 }
 
-fn convert_image_to_color_characters(
+fn convert_image_to_cell_candidates(
     camera_image: &DynamicImage,
     luminance_characters: &[char],
     luminance_scale: f32,
-) -> Vec<(char, Color)> {
-    let rgb_triplets = convert_image_to_rgb_triplets(camera_image);
-    let characters = rgb_triplets
-        .iter()
-        .map(|rgb| convert_rgb_triplet_to_character(rgb, luminance_characters, luminance_scale));
-    let colors = rgb_triplets
-        .iter()
-        .map(|rgb| Color::Rgb(rgb[0], rgb[1], rgb[2]));
+) -> impl Iterator<Item = (char, Color, bool)> {
+    let rgba_quads = convert_image_to_rgba_quads(camera_image);
 
-    characters.zip(colors).collect()
+    rgba_quads.into_iter().map(move |rgba| {
+        let character =
+            convert_rgba_quads_to_character(&rgba, luminance_characters, luminance_scale);
+        let color = Color::Rgb(rgba[0], rgba[1], rgba[2]);
+        let skip = rgba[3] == 0;
+        (character, color, skip)
+    })
 }
 
-fn convert_image_to_rgb_triplets(camera_image: &DynamicImage) -> Vec<[u8; 3]> {
-    let mut rgb_triplets =
-        vec![[0; 3]; (camera_image.width() * camera_image.height().div_ceil(2)) as usize];
+fn convert_image_to_rgba_quads(camera_image: &DynamicImage) -> Vec<[u8; 4]> {
+    let mut rgba_quad =
+        vec![[0; 4]; (camera_image.width() * camera_image.height().div_ceil(2)) as usize];
 
-    for (y, row) in camera_image.to_rgb8().rows().enumerate() {
+    for (y, row) in camera_image.to_rgba8().rows().enumerate() {
         for (x, pixel) in row.enumerate() {
             let position = x + (camera_image.width() as usize) * (y / 2);
             if y % 2 == 0 {
-                rgb_triplets[position] = pixel.0;
+                rgba_quad[position] = pixel.0;
             } else {
-                rgb_triplets[position][0] =
-                    (rgb_triplets[position][0].saturating_add(pixel[0])) / 2;
-                rgb_triplets[position][1] =
-                    (rgb_triplets[position][1].saturating_add(pixel[1])) / 2;
-                rgb_triplets[position][2] =
-                    (rgb_triplets[position][2].saturating_add(pixel[2])) / 2;
+                rgba_quad[position][0] = (rgba_quad[position][0].saturating_add(pixel[0])) / 2;
+                rgba_quad[position][1] = (rgba_quad[position][1].saturating_add(pixel[1])) / 2;
+                rgba_quad[position][2] = (rgba_quad[position][2].saturating_add(pixel[2])) / 2;
+                rgba_quad[position][3] = (rgba_quad[position][3].saturating_add(pixel[3])) / 2;
             }
         }
     }
 
-    rgb_triplets
+    rgba_quad
 }
 
-fn convert_rgb_triplet_to_character(
-    rgb_triplet: &[u8; 3],
+fn convert_rgba_quads_to_character(
+    rgba_quad: &[u8; 4],
     luminance_characters: &[char],
     luminance_scale: f32,
 ) -> char {
     let luminance =
-        bevy::color::Color::srgb_u8(rgb_triplet[0], rgb_triplet[1], rgb_triplet[2]).luminance();
+        bevy::color::Color::srgba_u8(rgba_quad[0], rgba_quad[1], rgba_quad[2], rgba_quad[3])
+            .luminance();
     let scaled_luminance = (luminance * luminance_scale).min(1.0);
     let character_index = ((scaled_luminance * luminance_characters.len() as f32) as usize)
         .min(luminance_characters.len() - 1);

@@ -11,7 +11,6 @@ use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::EdgeCharacters;
-use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraEdgeDetection;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
@@ -34,7 +33,7 @@ fn main() {
         ))
         .init_resource::<shared::Flags>()
         .init_resource::<shared::InputState>()
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::srgba(0., 0., 0., 0.)))
         .add_systems(Startup, setup_scene_system)
         .add_systems(Update, draw_scene_system.map(error))
         .add_systems(PreUpdate, shared::handle_input_system)
@@ -58,22 +57,30 @@ fn setup_scene_system(
     commands.spawn((
         Foreground,
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            mask_color: Some(ratatui::style::Color::Rgb(0, 0, 0)),
-            ..default()
-        }),
+        RatatuiCameraStrategy::luminance_braille(),
         RatatuiCameraEdgeDetection {
-            edge_color: Some(ratatui::style::Color::Rgb(255, 0, 255)),
+            edge_color: Some(ratatui::style::Color::Magenta),
             edge_characters: EdgeCharacters::Single('#'),
             ..Default::default()
         },
         Camera3d::default(),
+        Camera {
+            // by setting this camera's clear_color transparent, background pixels will be given an
+            // alpha value of zero and so will be skipped when the ratatui buffer is drawn
+            clear_color: ClearColorConfig::Custom(Color::srgba(0., 0., 0., 0.)),
+            ..default()
+        },
         Transform::from_xyz(6., 0., 2.).looking_at(Vec3::ZERO, Vec3::Z),
     ));
     commands.spawn((
         Background,
         RatatuiCamera::default(),
         RatatuiCameraStrategy::luminance_misc(),
+        RatatuiCameraEdgeDetection {
+            edge_color: Some(ratatui::style::Color::Cyan),
+            edge_characters: EdgeCharacters::Single('#'),
+            ..Default::default()
+        },
         Camera3d::default(),
         Transform::from_xyz(3., 0., 1.).looking_at(Vec3::ZERO, Vec3::Z),
     ));

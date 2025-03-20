@@ -1,5 +1,11 @@
 # bevy_ratatui_camera
 
+[![Crate Badge]][Crate]
+[![Docs Badge]][Docs]
+[![Deps Badge]][Deps]
+[![Downloads Badge]][Downloads]
+[![License Badge]][License]
+
 Bevy inside the terminal!
 
 Uses bevy headless rendering,
@@ -177,3 +183,11 @@ performance is adequate.
 | 0.15  | 0.10                |
 | 0.14  | 0.6                 |
 
+[Crate]: https://crates.io/crates/bevy_ratatui_camera
+[Crate Badge]: https://img.shields.io/crates/v/bevy_ratatui_camera
+[Docs]: https://docs.rs/bevy_ratatui_camera
+[Docs Badge]: https://img.shields.io/badge/docs-bevy_ratatui_camera-886666
+[Downloads]: https://crates.io/crates/bevy_ratatui_camera
+[Downloads Badge]: https://img.shields.io/crates/d/bevy_ratatui_camera.svg
+[License]: ./LICENSE-MIT
+[License Badge]: https://img.shields.io/crates/l/bevy_ratatui_camera

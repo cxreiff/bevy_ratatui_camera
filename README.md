@@ -1,12 +1,9 @@
 # bevy_ratatui_camera
 
-Bevy inside the terminal!
-
-Uses bevy headless rendering,
-[ratatui](https://github.com/ratatui-org/ratatui),
-[ratatui_image](https://github.com/benjajaja/ratatui-image), and
-[bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) to print your bevy
-application's rendered frames to the terminal.
+[![Crate Badge]][Crate]
+[![Docs Badge]][Docs]
+[![Downloads Badge]][Downloads]
+[![License Badge]][License]
 
 <p float="left">
 <img src="https://assets.cxreiff.com/github/cube.gif" width="30%" alt="cube">
@@ -14,11 +11,13 @@ application's rendered frames to the terminal.
 <img src="https://assets.cxreiff.com/github/sponza.gif" width="30%" alt="sponza test scene">
 <p>
 
-> examples/cube.rs, bevy many_foxes example, sponza test scene
+Bevy inside the terminal!
 
-Use [bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) for setting ratatui
-up and receiving terminal events (keyboard, focus, mouse, paste, resize) inside
-bevy.
+Uses bevy headless rendering,
+[ratatui](https://github.com/ratatui-org/ratatui),
+[ratatui_image](https://github.com/benjajaja/ratatui-image), and
+[bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) to print your bevy
+application's rendered frames to the terminal.
 
 > [!IMPORTANT]  
 > This crate was renamed from `bevy_ratatui_render` to `bevy_ratatui_camera`.
@@ -76,6 +75,10 @@ bevy camera entities that you add a `RatatuiCamera` component to, will have
 a `RatatuiCameraWidget` inserted that you can query for. Each
 `RatatuiCameraWidget` is a ratatui widget that when drawn will print the most
 recent frame rendered by the associated bevy camera, as unicode characters.
+
+Use [bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) for setting ratatui
+up and receiving terminal events (keyboard, focus, mouse, paste, resize) inside
+bevy.
 
 ## strategies
 
@@ -177,3 +180,11 @@ performance is adequate.
 | 0.15  | 0.10                |
 | 0.14  | 0.6                 |
 
+[Crate]: https://crates.io/crates/bevy_ratatui_camera
+[Crate Badge]: https://img.shields.io/crates/v/bevy_ratatui_camera
+[Docs]: https://docs.rs/bevy_ratatui_camera
+[Docs Badge]: https://img.shields.io/badge/docs-bevy_ratatui_camera-886666
+[Downloads]: https://crates.io/crates/bevy_ratatui_camera
+[Downloads Badge]: https://img.shields.io/crates/d/bevy_ratatui_camera.svg
+[License]: ./LICENSE-MIT
+[License Badge]: https://img.shields.io/crates/l/bevy_ratatui_camera

@@ -1,5 +1,10 @@
 # bevy_ratatui_camera
 
+[![Crate Badge]][Crate]
+[![Docs Badge]][Docs]
+[![Downloads Badge]][Downloads]
+[![License Badge]][License]
+
 Bevy inside the terminal!
 
 Uses bevy headless rendering,
@@ -13,8 +18,6 @@ application's rendered frames to the terminal.
 <img src="https://assets.cxreiff.com/github/foxes.gif" width="30%" alt="foxes">
 <img src="https://assets.cxreiff.com/github/sponza.gif" width="30%" alt="sponza test scene">
 <p>
-
-> examples/cube.rs, bevy many_foxes example, sponza test scene
 
 Use [bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) for setting ratatui
 up and receiving terminal events (keyboard, focus, mouse, paste, resize) inside
@@ -177,3 +180,11 @@ performance is adequate.
 | 0.15  | 0.10                |
 | 0.14  | 0.6                 |
 
+[Crate]: https://crates.io/crates/bevy_ratatui_camera
+[Crate Badge]: https://img.shields.io/crates/v/bevy_ratatui_camera
+[Docs]: https://docs.rs/bevy_ratatui_camera
+[Docs Badge]: https://img.shields.io/badge/docs-bevy_ratatui_camera-886666
+[Downloads]: https://crates.io/crates/bevy_ratatui_camera
+[Downloads Badge]: https://img.shields.io/crates/d/bevy_ratatui_camera.svg
+[License]: ./LICENSE-MIT
+[License Badge]: https://img.shields.io/crates/l/bevy_ratatui_camera

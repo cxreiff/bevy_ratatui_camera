@@ -51,7 +51,7 @@ impl RatatuiCameraStrategy {
 /// # Example:
 ///
 /// The following would configure the widget to multiply each pixel's luminance value by 5.0, use
-/// ' ' and '.' for dimmer areas, use '+' and '#' for brighter areas, and skip using a mask color:
+/// ' ' and '.' for dimmer areas, use '+' and '#' for brighter areas, and skip transparent pixels.
 ///
 /// ```no_run
 /// # use bevy::prelude::*;
@@ -63,7 +63,7 @@ impl RatatuiCameraStrategy {
 ///     RatatuiCameraStrategy::Luminance(LuminanceConfig {
 ///         luminance_characters: vec![' ', '.', '+', '#'],
 ///         luminance_scale: 5.0,
-///         mask_color: None,
+///         transparent: true,
 ///     }),
 /// # ));
 /// # };
@@ -82,17 +82,18 @@ pub struct LuminanceConfig {
     /// 1.0, each luminance value is multiplied by a scaling value first.
     pub luminance_scale: f32,
 
-    /// An optional mask color for creating transparency effects. Skips writing any character to
-    /// the terminal buffer that matches the provided color.
+    /// If the alpha value of a rendered pixel is zero, skip writing that character to the ratatui
+    /// buffer. Useful for compositing camera images together.
     ///
-    /// For example, set it to `Some(Color::Rgb(0, 0, 0)` in a scene with a foreground object in
-    /// front of a black background, to render that object without the background space overwriting
-    /// the cells currently in the buffer.
+    /// Normally if two camera widgets are rendered in the same buffer area, the first image will
+    /// be completely overwritten by the background of the second, even if the background is empty.
+    /// But, with this option enabled, transparent pixels in the second image will skip being drawn
+    /// and will leave the first layer as-is.
     ///
-    /// Useful for compositing together multiple rendered layers. There should generally always be
-    /// at least one non-masked layer furthest back, as otherwise stray cells in the terminal
-    /// buffer might not get replaced between frames.
-    pub mask_color: Option<ratatui::style::Color>,
+    /// Make sure to set the `Camera` component's `clear_color` to fully transparent for your
+    /// transparent camera entity. Only fully transparent pixels will be skipped. See the
+    /// `transparency` example for more detail.
+    pub transparent: bool,
 }
 
 impl LuminanceConfig {
@@ -116,7 +117,7 @@ impl Default for LuminanceConfig {
         Self {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
-            mask_color: None,
+            transparent: true,
         }
     }
 }

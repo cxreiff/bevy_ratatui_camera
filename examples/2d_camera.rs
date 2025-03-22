@@ -44,10 +44,10 @@ fn main() {
 
 fn setup_scene_system(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    shared::spawn_2d_scene(&mut commands, &mut meshes, &mut materials);
+    shared::spawn_2d_scene(commands.reborrow(), meshes, materials);
 
     commands.spawn((
         RatatuiCamera::default(),

@@ -92,7 +92,7 @@ fn handle_ratatui_camera_insert_system(
             .observe(handle_ratatui_camera_resize);
 
         insert_camera_readback_components(
-            &mut commands,
+            commands.reborrow(),
             trigger.entity(),
             &mut image_assets,
             &render_device,
@@ -140,7 +140,7 @@ fn handle_ratatui_edge_detection_insert_system(
 ) {
     if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.entity()) {
         insert_edge_detection_readback_components(
-            &mut commands,
+            commands.reborrow(),
             trigger.entity(),
             &mut image_assets,
             &render_device,
@@ -166,7 +166,7 @@ fn update_ratatui_camera_readback_system(
 ) {
     for (entity, ratatui_camera) in &ratatui_cameras {
         insert_camera_readback_components(
-            &mut commands,
+            commands.reborrow(),
             entity,
             &mut image_assets,
             &render_device,
@@ -187,7 +187,7 @@ fn update_ratatui_edge_detection_readback_system(
 ) {
     for (entity, ratatui_camera) in &ratatui_cameras {
         insert_edge_detection_readback_components(
-            &mut commands,
+            commands.reborrow(),
             entity,
             &mut image_assets,
             &render_device,
@@ -315,7 +315,7 @@ fn handle_camera_targeting_events_system(
 }
 
 fn insert_camera_readback_components(
-    commands: &mut Commands,
+    mut commands: Commands,
     entity: Entity,
     image_assets: &mut Assets<Image>,
     render_device: &RenderDevice,
@@ -336,7 +336,7 @@ fn insert_camera_readback_components(
 }
 
 fn insert_edge_detection_readback_components(
-    commands: &mut Commands,
+    mut commands: Commands,
     entity: Entity,
     image_assets: &mut Assets<Image>,
     render_device: &RenderDevice,

@@ -24,7 +24,7 @@ application's rendered frames to the terminal.
 
 ## getting started
 
-`cargo add bevy_ratatui_camera bevy_ratatui`
+`cargo add bevy_ratatui_camera bevy_ratatui ratatui crossterm`
 
 ```rust
 fn main() {
@@ -46,7 +46,8 @@ fn main() {
             RatatuiCameraPlugin,
         ))
         .add_systems(Startup, setup_scene_system)
-        .add_systems(PostUpdate, draw_scene_system.map(error));
+        .add_systems(PostUpdate, draw_scene_system.map(error))
+        .run();
 }
 
 // add RatatuiCamera to your scene's camera.

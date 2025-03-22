@@ -33,9 +33,9 @@ pub fn setup_tui_logger(filter: LevelFilter) {
 
 #[allow(dead_code)]
 pub fn spawn_3d_scene(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn((
         Spinner,
@@ -61,9 +61,9 @@ pub fn spawn_3d_scene(
 
 #[allow(dead_code)]
 pub fn spawn_2d_scene(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<ColorMaterial>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn((
         Spinner,

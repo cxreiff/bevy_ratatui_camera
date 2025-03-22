@@ -3,11 +3,10 @@ name = "bevy_ratatui_camera"
 description = "A bevy plugin for rendering your bevy app to the terminal using ratatui."
 version = "0.10.0"
 edition = "2024"
-authors = ["cxreiff <cooper@cxreiff.com>"]
 license = "MIT OR Apache-2.0"
-readme = "README.md"
 repository = "https://github.com/cxreiff/bevy_ratatui_camera"
 documentation = "https://docs.rs/bevy_ratatui_camera"
+authors = ["cxreiff <cooper@cxreiff.com>"]
 categories = ["game-engines", "gui", "rendering", "command-line-interface"]
 keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 

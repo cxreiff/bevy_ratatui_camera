@@ -72,6 +72,10 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                 continue;
             }
 
+            let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) else {
+                continue;
+            };
+
             if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
                 if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
                     continue;
@@ -125,9 +129,7 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                 continue;
             }
 
-            if let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) {
-                cell.set_fg(color).set_char(character);
-            }
+            cell.set_fg(color).set_char(character);
         }
     }
 }

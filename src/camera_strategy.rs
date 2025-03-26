@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::color_range::TerminalColorRange;
+
 /// Specify the strategy used for converting the camera's rendered image to unicode characters for
 /// the terminal buffer. Insert a variant of this component alongside your `RatatuiCamera` to
 /// change the default behavior.
@@ -94,6 +96,18 @@ pub struct LuminanceConfig {
     /// transparent camera entity. Only fully transparent pixels will be skipped. See the
     /// `transparency` example for more detail.
     pub transparent: bool,
+
+    /// The range of terminal colors to convert to. Many terminals support 24-bit RGB colors, but
+    /// some only support pre-defined sets of 16 or 256 ANSI colors. By default the `RGB` enum
+    /// variant will be used, which transparently uses the rgb u8 triplet to create a ratatui
+    /// `Color::RGB` color. If set to the `ANSI16` or `ANSI256` enum variants, this strategy will
+    /// find the ANSI color within those sets closest to the original rgb color (by Euclidean
+    /// distance), and then convert to the corresponding ratatui `Color::Indexed` (for 256 colors)
+    /// or named ANSI color, like `Color::Cyan` (for 16 colors).
+    ///
+    /// Reference for terminal color support:
+    /// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+    pub color_range: TerminalColorRange,
 }
 
 impl LuminanceConfig {
@@ -118,6 +132,7 @@ impl Default for LuminanceConfig {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
             transparent: true,
+            color_range: TerminalColorRange::Rgb,
         }
     }
 }

@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::color_support::ColorSupport;
+
 /// Specify the strategy used for converting the camera's rendered image to unicode characters for
 /// the terminal buffer. Insert a variant of this component alongside your `RatatuiCamera` to
 /// change the default behavior.
@@ -55,7 +57,9 @@ impl RatatuiCameraStrategy {
 ///
 /// ```no_run
 /// # use bevy::prelude::*;
-/// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiCameraStrategy, LuminanceConfig};
+/// # use bevy_ratatui_camera::{
+/// #   RatatuiCamera, RatatuiCameraStrategy, LuminanceConfig
+/// # };
 /// #
 /// # fn setup_scene_system(mut commands: Commands) {
 /// # commands.spawn((
@@ -64,6 +68,7 @@ impl RatatuiCameraStrategy {
 ///         luminance_characters: vec![' ', '.', '+', '#'],
 ///         luminance_scale: 5.0,
 ///         transparent: true,
+///         ..default()
 ///     }),
 /// # ));
 /// # };
@@ -94,6 +99,23 @@ pub struct LuminanceConfig {
     /// transparent camera entity. Only fully transparent pixels will be skipped. See the
     /// `transparency` example for more detail.
     pub transparent: bool,
+
+    /// The sets of terminal colors to convert to. Many terminals support 24-bit RGB "true color",
+    /// but some only support pre-defined sets of 16 or 256 ANSI colors. By default the `RGB` enum
+    /// variant will be used, which transparently uses the rgb u8 triplet to create a ratatui
+    /// `Color::RGB` color. If set to the `ANSI16` or `ANSI256` enum variants, this strategy will
+    /// find the ANSI color within those sets closest to the original rgb color (by Euclidean
+    /// distance), and then convert to the corresponding ratatui `Color::Indexed` (for 256 colors)
+    /// or named ANSI color, like `Color::Cyan` (for 16 colors).
+    ///
+    /// Colors that are from a more limited set will not be converted "upwards" to the more
+    /// expansive set- for example, if you set an edge detection color of `Color::Cyan` and the
+    /// `ColorSupport::ANSI256` variant, the color will be left as-is rather than being converted
+    /// to `Color::Indexed(6)` (the equivalent indexed color for cyan).
+    ///
+    /// Reference for terminal color support:
+    /// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+    pub color_support: ColorSupport,
 }
 
 impl LuminanceConfig {
@@ -118,6 +140,7 @@ impl Default for LuminanceConfig {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
             transparent: true,
+            color_support: ColorSupport::TrueColor,
         }
     }
 }

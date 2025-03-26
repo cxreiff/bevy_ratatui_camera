@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.11.0...v0.11.1) - 2025-03-26
+
+### Other
+
+- generate 256 ANSI colors with const fn
+
 ## [0.11.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.10.0...v0.11.0) - 2025-03-26
 
 ### Other

@@ -33,10 +33,10 @@ impl WidgetRef for RatatuiCameraWidgetHalfblocks<'_> {
             ..area
         };
 
-        let image_as_halfblocks = picker
+        let mut image_as_halfblocks = picker
             .new_protocol(camera_image, render_area, Resize::Fit(None))
             .unwrap();
 
-        ratatui_image::Image::new(&image_as_halfblocks).render(render_area, buf);
+        ratatui_image::Image::new(&mut image_as_halfblocks).render(render_area, buf);
     }
 }

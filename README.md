@@ -184,7 +184,7 @@ depend on the terminal and on user configuration.
 
 | bevy  | bevy_ratatui_camera |
 |-------|---------------------|
-| 0.15  | 0.10                |
+| 0.15  | 0.11                |
 | 0.14  | 0.6                 |
 
 [Crate]: https://crates.io/crates/bevy_ratatui_camera

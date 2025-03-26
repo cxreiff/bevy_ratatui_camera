@@ -2,16 +2,16 @@ use ratatui::style::Color;
 
 /// Options for restricting the terminal colors that rendered pixels are converted to.
 ///
-/// Many terminals support 24-bit RGB colors, but some only support pre-defined sets of 16 or 256
-/// ANSI colors. This enum represents each of those sets of possible colors when converting
+/// Many terminals support 24-bit RGB "true color", but some only support pre-defined sets of 16 or
+/// 256 ANSI colors. This enum represents each of those sets of possible colors when converting
 /// rendered pixels to terminal characters.
 ///
 /// Reference for terminal color support:
 /// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
 #[derive(Clone, Copy, Debug)]
-pub enum TerminalColorRange {
+pub enum ColorSupport {
     /// Any 24-bit color, represented by ratatui's `Color::Rgb` enum variant.
-    Rgb,
+    TrueColor,
 
     /// A color from a set of 256 pre-defined colors, referred to by index (ratatui's
     /// `Color::Indexed` enum variant.
@@ -22,11 +22,11 @@ pub enum TerminalColorRange {
     ANSI16,
 }
 
-pub fn color_for_color_range(color: Color, range: TerminalColorRange) -> Color {
-    match range {
-        TerminalColorRange::Rgb => color,
-        TerminalColorRange::ANSI256 => color_to_ansi_256(color),
-        TerminalColorRange::ANSI16 => color_to_ansi_16(color),
+pub fn color_for_color_support(color: Color, support: ColorSupport) -> Color {
+    match support {
+        ColorSupport::TrueColor => color,
+        ColorSupport::ANSI256 => color_to_ansi_256(color),
+        ColorSupport::ANSI16 => color_to_ansi_16(color),
     }
 }
 

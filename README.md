@@ -161,8 +161,9 @@ additional `RatatuiSubcamera` cameras that point to the main camera.
 
 ## supported terminals
 
-Printing to terminal relies on the terminal supporting 24-bit color. I've
-personally tested and confirmed that the following terminals display correctly:
+By default, printing to terminal relies on the terminal supporting 24-bit
+color. I've personally tested and confirmed that the following terminals
+display correctly:
 
 - Alacritty
 - Kitty
@@ -173,6 +174,11 @@ personally tested and confirmed that the following terminals display correctly:
 
 ...but any terminal with 24-bit color support should work fine, if its
 performance is adequate.
+
+You can also use the `color_support` option in `RatatuiCameraStrategy` to
+convert colors to a more limited ANSI sets, in order to target terminals with
+more limited color support, but results may be inconsistent as ANSI colors can
+depend on the terminal and on user configuration.
 
 ## compatibility
 

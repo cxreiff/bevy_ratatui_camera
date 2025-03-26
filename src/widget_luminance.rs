@@ -4,7 +4,7 @@ use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
 
-use crate::color_range::color_for_color_range;
+use crate::color_support::color_for_color_support;
 use crate::{LuminanceConfig, RatatuiCameraEdgeDetection};
 
 pub struct RatatuiCameraWidgetLuminance<'a> {
@@ -130,7 +130,7 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                 continue;
             }
 
-            color = color_for_color_range(color, strategy_config.color_range);
+            color = color_for_color_support(color, strategy_config.color_support);
 
             cell.set_fg(color).set_char(character);
         }

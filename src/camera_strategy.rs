@@ -23,6 +23,14 @@ pub enum RatatuiCameraStrategy {
 }
 
 impl RatatuiCameraStrategy {
+    /// Luminance strategy with a provided list of characters.
+    pub fn luminance_with_characters(characters: &[char]) -> Self {
+        Self::Luminance(LuminanceConfig {
+            luminance_characters: characters.into(),
+            ..default()
+        })
+    }
+
     /// Luminance strategy with a range of braille unicode characters in increasing order of opacity.
     pub fn luminance_braille() -> Self {
         Self::Luminance(LuminanceConfig {
@@ -87,6 +95,11 @@ pub struct LuminanceConfig {
     /// 1.0, each luminance value is multiplied by a scaling value first.
     pub luminance_scale: f32,
 
+    /// Percentage of each terminal cell's foreground color, as a float between 0.0 and 1.0, that
+    /// each corresponding cell background will be set to. Defaults to 0.0. Useful for reducing the
+    /// contrast between the foreground and background, or increasing the overall brightness.
+    pub bg_color_scale: f32,
+
     /// If the alpha value of a rendered pixel is zero, skip writing that character to the ratatui
     /// buffer. Useful for compositing camera images together.
     ///
@@ -139,6 +152,7 @@ impl Default for LuminanceConfig {
         Self {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
+            bg_color_scale: 0.0,
             transparent: true,
             color_support: ColorSupport::TrueColor,
         }

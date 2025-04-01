@@ -5,7 +5,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
 
 use crate::color_support::color_for_color_support;
-use crate::{LuminanceConfig, RatatuiCameraEdgeDetection};
+use crate::{ColorSupport, LuminanceConfig, RatatuiCameraEdgeDetection};
 
 pub struct RatatuiCameraWidgetLuminance<'a> {
     camera_image: &'a DynamicImage,
@@ -131,6 +131,19 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
             }
 
             color = color_for_color_support(color, strategy_config.color_support);
+
+            if strategy_config.bg_color_scale > 0.0 {
+                if let ColorSupport::TrueColor = strategy_config.color_support {
+                    if let Color::Rgb(r, g, b) = color {
+                        let bg = Color::Rgb(
+                            (r as f32 * 0.4) as u8,
+                            (g as f32 * 0.4) as u8,
+                            (b as f32 * 0.4) as u8,
+                        );
+                        cell.set_bg(bg);
+                    }
+                }
+            }
 
             cell.set_fg(color).set_char(character);
         }

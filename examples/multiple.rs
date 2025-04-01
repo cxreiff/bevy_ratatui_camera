@@ -10,6 +10,7 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
+use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
@@ -30,7 +31,7 @@ fn main() {
                 .set(ImagePlugin::default_nearest())
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
-            ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 60.)),
+            ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 120.)),
             FrameTimeDiagnosticsPlugin,
             RatatuiPlugins::default(),
             RatatuiCameraPlugin,
@@ -54,18 +55,23 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::luminance_misc(),
+        RatatuiCameraStrategy::luminance_with_characters(&[' ', '-', '+', '=', '#']),
         Camera3d::default(),
         Transform::from_xyz(0., 3., 0.).looking_at(Vec3::ZERO, Vec3::Z),
     ));
     commands.spawn((
         RatatuiCamera::default(),
+        RatatuiCameraStrategy::Luminance(LuminanceConfig {
+            bg_color_scale: 0.5,
+            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
+            ..default()
+        }),
         Camera3d::default(),
         Transform::from_xyz(0., 0., 3.).looking_at(Vec3::ZERO, Vec3::Z),
     ));
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::luminance_braille(),
+        RatatuiCameraStrategy::luminance_with_characters(&[' ', '.', 'o', 'O', '0']),
         Camera3d::default(),
         Transform::from_xyz(2., 2., 2.).looking_at(Vec3::ZERO, Vec3::Z),
     ));

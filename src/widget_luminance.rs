@@ -176,10 +176,14 @@ fn convert_image_to_rgba_quads(camera_image: &DynamicImage) -> Vec<[u8; 4]> {
             if y % 2 == 0 {
                 rgba_quad[position] = pixel.0;
             } else {
-                rgba_quad[position][0] = (rgba_quad[position][0].saturating_add(pixel[0])) / 2;
-                rgba_quad[position][1] = (rgba_quad[position][1].saturating_add(pixel[1])) / 2;
-                rgba_quad[position][2] = (rgba_quad[position][2].saturating_add(pixel[2])) / 2;
-                rgba_quad[position][3] = (rgba_quad[position][3].saturating_add(pixel[3])) / 2;
+                rgba_quad[position][0] =
+                    ((rgba_quad[position][0] as u16 + pixel[0] as u16) / 2) as u8;
+                rgba_quad[position][1] =
+                    ((rgba_quad[position][1] as u16 + pixel[1] as u16) / 2) as u8;
+                rgba_quad[position][2] =
+                    ((rgba_quad[position][2] as u16 + pixel[2] as u16) / 2) as u8;
+                rgba_quad[position][3] =
+                    ((rgba_quad[position][3] as u16 + pixel[3] as u16) / 2) as u8;
             }
         }
     }

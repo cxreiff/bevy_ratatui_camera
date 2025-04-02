@@ -52,7 +52,7 @@ fn setup_scene_system(
     commands.spawn((
         RatatuiCamera::default(),
         Camera3d::default(),
-        Transform::from_xyz(3., 3., 3.).looking_at(Vec3::ZERO, Vec3::Z),
+        Transform::from_xyz(2.5, 2.5, 2.5).looking_at(Vec3::ZERO, Vec3::Z),
     ));
 }
 

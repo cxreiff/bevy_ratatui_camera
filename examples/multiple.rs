@@ -62,7 +62,7 @@ fn setup_scene_system(
     commands.spawn((
         RatatuiCamera::default(),
         RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            bg_color_scale: 0.5,
+            bg_color_scale: 0.2,
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             ..default()
         }),

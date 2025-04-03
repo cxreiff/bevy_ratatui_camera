@@ -52,7 +52,7 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::luminance_misc(),
+        RatatuiCameraStrategy::luminance_braille(),
         Camera3d::default(),
         Transform::from_xyz(2.5, 2.5, 2.5).looking_at(Vec3::ZERO, Vec3::Z),
     ));

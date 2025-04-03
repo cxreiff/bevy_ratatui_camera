@@ -1,4 +1,3 @@
-use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
@@ -6,6 +5,9 @@ use ratatui::widgets::WidgetRef;
 use crate::RatatuiCameraEdgeDetection;
 use crate::camera_strategy::HalfBlocksConfig;
 use crate::color_support::color_for_color_support;
+use crate::widget_utilities::{
+    calculate_render_area, coords_from_index, replace_detected_edges, resize_image_to_area,
+};
 
 pub struct RatatuiCameraWidgetHalf<'a> {
     camera_image: &'a DynamicImage,
@@ -39,32 +41,20 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
             edge_detection,
         } = self;
 
-        let camera_image = camera_image.resize(
-            area.width as u32,
-            area.height as u32 * 2,
-            FilterType::Nearest,
-        );
+        let camera_image = resize_image_to_area(area, camera_image);
 
-        let render_area = Rect {
-            x: area.x + area.width.saturating_sub(camera_image.width() as u16) / 2,
-            y: area.y + (area.height).saturating_sub(camera_image.height() as u16 / 2) / 2,
-            width: camera_image.width() as u16,
-            height: camera_image.height() as u16 / 2,
-        };
+        let render_area = calculate_render_area(area, &camera_image);
 
         let cell_candidates = convert_image_to_cell_candidates(&camera_image, strategy_config);
 
-        let sobel_image = sobel_image.as_ref().map(|sobel_image| {
-            sobel_image.resize(
-                area.width as u32,
-                area.height as u32 * 2,
-                FilterType::Nearest,
-            )
-        });
+        let sobel_image = sobel_image
+            .as_ref()
+            .map(|sobel_image| resize_image_to_area(area, sobel_image));
 
         for (index, (mut bg, mut fg)) in cell_candidates.enumerate() {
-            let x = index as u16 % camera_image.width() as u16;
-            let y = index as u16 / camera_image.width() as u16;
+            let mut character = '▄';
+            let (x, y) = coords_from_index(index, &camera_image);
+
             if x >= render_area.width || y >= render_area.height {
                 continue;
             }
@@ -73,8 +63,6 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
                 continue;
             };
 
-            let mut character = '▄';
-
             if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
                 if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
                     continue;
@@ -82,41 +70,8 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
 
                 let sobel_value = sobel_image.get_pixel(x as u32, y as u32 * 2);
 
-                match edge_detection.edge_characters {
-                    crate::EdgeCharacters::Directional {
-                        vertical,
-                        horizontal,
-                        forward_diagonal,
-                        backward_diagonal,
-                    } => {
-                        let is_max_sobel = |current: u8| {
-                            sobel_value
-                                .0
-                                .iter()
-                                .all(|val| (current > 0) && (current >= *val))
-                        };
-
-                        if is_max_sobel(sobel_value[0]) {
-                            character = vertical;
-                            fg = edge_detection.edge_color.unwrap_or(fg);
-                        } else if is_max_sobel(sobel_value[1]) {
-                            character = horizontal;
-                            fg = edge_detection.edge_color.unwrap_or(fg);
-                        } else if is_max_sobel(sobel_value[2]) {
-                            character = forward_diagonal;
-                            fg = edge_detection.edge_color.unwrap_or(fg);
-                        } else if is_max_sobel(sobel_value[3]) {
-                            character = backward_diagonal;
-                            fg = edge_detection.edge_color.unwrap_or(fg);
-                        }
-                    }
-                    crate::EdgeCharacters::Single(edge_character) => {
-                        if sobel_value.0.iter().any(|val| *val > 0) {
-                            character = edge_character;
-                            fg = edge_detection.edge_color.unwrap_or(fg);
-                        }
-                    }
-                }
+                (character, fg) =
+                    replace_detected_edges(character, fg, &sobel_value, edge_detection);
             };
 
             if !matches!(bg, Color::Reset) {
@@ -159,19 +114,19 @@ fn convert_image_to_cell_candidates(
 }
 
 fn convert_image_to_rgba_quads(camera_image: &DynamicImage) -> Vec<[[u8; 4]; 2]> {
-    let mut rgba_quad =
+    let mut rgba_quad_pairs =
         vec![[[0; 4]; 2]; (camera_image.width() * camera_image.height().div_ceil(2)) as usize];
 
     for (y, row) in camera_image.to_rgba8().rows().enumerate() {
         for (x, pixel) in row.enumerate() {
             let position = x + (camera_image.width() as usize) * (y / 2);
             if y % 2 == 0 {
-                rgba_quad[position][0] = pixel.0;
+                rgba_quad_pairs[position][0] = pixel.0;
             } else {
-                rgba_quad[position][1] = pixel.0;
+                rgba_quad_pairs[position][1] = pixel.0;
             }
         }
     }
 
-    rgba_quad
+    rgba_quad_pairs
 }

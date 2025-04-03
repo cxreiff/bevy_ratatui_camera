@@ -1,9 +1,12 @@
-use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
 
 use crate::RatatuiCameraEdgeDetection;
+use crate::widget_utilities::{
+    average_in_rgb, calculate_render_area, coords_from_index, replace_detected_edges,
+    resize_image_to_area,
+};
 
 pub struct RatatuiCameraWidgetNone<'a> {
     camera_image: &'a DynamicImage,
@@ -37,31 +40,18 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
             return;
         };
 
-        let camera_image = camera_image.resize(
-            area.width as u32,
-            area.height as u32 * 2,
-            FilterType::Nearest,
-        );
+        let camera_image = resize_image_to_area(area, camera_image);
 
-        let render_area = Rect {
-            x: area.x + area.width.saturating_sub(camera_image.width() as u16) / 2,
-            y: area.y + (area.height).saturating_sub(camera_image.height() as u16 / 2) / 2,
-            width: camera_image.width() as u16,
-            height: camera_image.height() as u16 / 2,
-        };
+        let render_area = calculate_render_area(area, &camera_image);
 
         let mut color_characters = convert_image_to_colors(&camera_image);
 
-        let sobel_image = sobel_image.resize(
-            area.width as u32,
-            area.height as u32 * 2,
-            FilterType::Nearest,
-        );
+        let sobel_image = resize_image_to_area(area, sobel_image);
 
         for (index, color) in color_characters.iter_mut().enumerate() {
             let mut character = ' ';
-            let x = index as u16 % camera_image.width() as u16;
-            let y = index as u16 / camera_image.width() as u16;
+            let (x, y) = coords_from_index(index, &camera_image);
+
             if x >= render_area.width || y >= render_area.height {
                 continue;
             }
@@ -72,41 +62,8 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
 
             let sobel_value = sobel_image.get_pixel(x as u32, y as u32 * 2);
 
-            match edge_detection.edge_characters {
-                crate::EdgeCharacters::Directional {
-                    vertical,
-                    horizontal,
-                    forward_diagonal,
-                    backward_diagonal,
-                } => {
-                    let is_max_sobel = |current: u8| {
-                        sobel_value
-                            .0
-                            .iter()
-                            .all(|val| (current > 0) && (current >= *val))
-                    };
-
-                    if is_max_sobel(sobel_value[0]) {
-                        character = vertical;
-                        *color = edge_detection.edge_color.unwrap_or(*color);
-                    } else if is_max_sobel(sobel_value[1]) {
-                        character = horizontal;
-                        *color = edge_detection.edge_color.unwrap_or(*color);
-                    } else if is_max_sobel(sobel_value[2]) {
-                        character = forward_diagonal;
-                        *color = edge_detection.edge_color.unwrap_or(*color);
-                    } else if is_max_sobel(sobel_value[3]) {
-                        character = backward_diagonal;
-                        *color = edge_detection.edge_color.unwrap_or(*color);
-                    }
-                }
-                crate::EdgeCharacters::Single(edge_character) => {
-                    if sobel_value.0.iter().any(|val| *val > 0) {
-                        character = edge_character;
-                        *color = edge_detection.edge_color.unwrap_or(*color);
-                    }
-                }
-            }
+            (character, *color) =
+                replace_detected_edges(character, *color, &sobel_value, edge_detection);
 
             if let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) {
                 cell.set_fg(*color).set_char(character);
@@ -134,12 +91,7 @@ fn convert_image_to_rgb_triplets(camera_image: &DynamicImage) -> Vec<[u8; 3]> {
             if y % 2 == 0 {
                 rgb_triplets[position] = pixel.0;
             } else {
-                rgb_triplets[position][0] =
-                    (rgb_triplets[position][0].saturating_add(pixel[0])) / 2;
-                rgb_triplets[position][1] =
-                    (rgb_triplets[position][1].saturating_add(pixel[1])) / 2;
-                rgb_triplets[position][2] =
-                    (rgb_triplets[position][2].saturating_add(pixel[2])) / 2;
+                rgb_triplets[position] = average_in_rgb(&rgb_triplets[position], pixel);
             }
         }
     }

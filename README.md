@@ -14,8 +14,7 @@
 Bevy inside the terminal!
 
 Uses bevy headless rendering,
-[ratatui](https://github.com/ratatui-org/ratatui),
-[ratatui_image](https://github.com/benjajaja/ratatui-image), and
+[ratatui](https://github.com/ratatui-org/ratatui), and
 [bevy_ratatui](https://github.com/cxreiff/bevy_ratatui) to print your bevy
 application's rendered frames to the terminal.
 

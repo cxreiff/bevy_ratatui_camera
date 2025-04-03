@@ -14,6 +14,7 @@ use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::event::KeyEvent;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
+use bevy_ratatui_camera::HalfBlocksConfig;
 use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraEdgeDetection;
@@ -178,10 +179,12 @@ fn toggle_ratatui_camera_strategy(
 ) {
     let (entity, strategy) = ratatui_camera.single_mut();
     commands.entity(entity).insert(match strategy {
-        RatatuiCameraStrategy::HalfBlocks => {
+        RatatuiCameraStrategy::HalfBlocks(_) => {
             RatatuiCameraStrategy::Luminance(LuminanceConfig::default())
         }
-        RatatuiCameraStrategy::Luminance(_) => RatatuiCameraStrategy::HalfBlocks,
+        RatatuiCameraStrategy::Luminance(_) => {
+            RatatuiCameraStrategy::HalfBlocks(HalfBlocksConfig::default())
+        }
         RatatuiCameraStrategy::None => RatatuiCameraStrategy::None,
     });
 }

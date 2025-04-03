@@ -9,7 +9,6 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
-use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
@@ -51,7 +50,7 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig::default()),
+        RatatuiCameraStrategy::luminance_braille(),
         Camera2d,
     ));
 }

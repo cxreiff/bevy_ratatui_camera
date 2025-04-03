@@ -12,6 +12,7 @@ use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
+use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use log::LevelFilter;
 use ratatui::widgets::Widget;
@@ -51,6 +52,7 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
+        RatatuiCameraStrategy::luminance_blocks(),
         Camera3d::default(),
         Transform::from_xyz(2.5, 2.5, 2.5).looking_at(Vec3::ZERO, Vec3::Z),
     ));

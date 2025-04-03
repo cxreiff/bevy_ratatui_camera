@@ -4,7 +4,7 @@ use ratatui::widgets::Widget;
 use ratatui::{prelude::*, widgets::WidgetRef};
 
 use crate::camera_readback::RatatuiCameraResize;
-use crate::widget_halfblocks::RatatuiCameraWidgetHalfblocks;
+use crate::widget_halfblocks::RatatuiCameraWidgetHalf;
 use crate::widget_luminance::RatatuiCameraWidgetLuminance;
 use crate::widget_none::RatatuiCameraWidgetNone;
 use crate::{RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy};
@@ -38,8 +38,14 @@ pub struct RatatuiCameraWidget {
 impl Widget for &RatatuiCameraWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         match self.strategy {
-            RatatuiCameraStrategy::HalfBlocks => {
-                RatatuiCameraWidgetHalfblocks::new(&self.camera_image).render_ref(area, buf)
+            RatatuiCameraStrategy::HalfBlocks(ref strategy_config) => {
+                RatatuiCameraWidgetHalf::new(
+                    &self.camera_image,
+                    &self.sobel_image,
+                    strategy_config,
+                    &self.edge_detection,
+                )
+                .render_ref(area, buf);
             }
             RatatuiCameraStrategy::Luminance(ref strategy_config) => {
                 RatatuiCameraWidgetLuminance::new(

@@ -12,7 +12,7 @@ use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::ColorSupport;
-use bevy_ratatui_camera::LuminanceConfig;
+use bevy_ratatui_camera::HalfBlocksConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
@@ -56,8 +56,7 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_MISC.into(),
+        RatatuiCameraStrategy::HalfBlocks(HalfBlocksConfig {
             color_support: ColorSupport::ANSI256,
             ..default()
         }),

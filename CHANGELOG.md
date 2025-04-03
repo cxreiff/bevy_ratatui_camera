@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.11.1...v0.12.0) - 2025-04-03
+
+### Fixed
+
+- saturating add causing washed out colors
+
+### Other
+
+- deduped some widget code into widget_utilities
+- replaced ratatui-image with HalfBlocks strategy
+- luminance_characters(), bg_color_scale
+
 ## [0.11.1](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.11.0...v0.11.1) - 2025-03-26
 
 ### Other

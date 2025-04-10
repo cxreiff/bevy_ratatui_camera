@@ -13,7 +13,7 @@ keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 [dependencies]
 bevy = "0.15.3"
 crossterm = "0.28.0"
-crossbeam-channel = "0.5.13"
+crossbeam-channel = "0.5.15"
 ratatui = "0.29.0"
 bevy_ratatui = "0.7.1"
 image = "0.25.5"

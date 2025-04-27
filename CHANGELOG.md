@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.12.0...v0.13.0) - 2025-04-27
+
+### Other
+
+- doc fix for subcameras
+- smoothed FPS counter
+- bevy 0.16 migration
+
 ## [0.12.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.11.1...v0.12.0) - 2025-04-03
 
 ### Fixed

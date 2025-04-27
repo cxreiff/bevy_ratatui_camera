@@ -8,6 +8,7 @@ use bevy::{
         prepass::ViewPrepassTextures,
     },
     ecs::query::QueryItem,
+    platform::collections::HashMap,
     prelude::*,
     render::{
         Render, RenderApp, RenderSet,
@@ -32,7 +33,6 @@ use bevy::{
         texture::GpuImage,
         view::{ViewTarget, ViewUniform, ViewUniformOffset, ViewUniforms},
     },
-    utils::HashMap,
 };
 
 use crate::{RatatuiCameraEdgeDetection, camera_readback::RatatuiSobelSender};

@@ -11,17 +11,16 @@ categories = ["game-engines", "gui", "rendering", "command-line-interface"]
 keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 
 [dependencies]
-bevy = "0.15.3"
-crossterm = "0.28.0"
-crossbeam-channel = "0.5.13"
+bevy = "0.16.0"
+crossterm = "0.29.0"
+crossbeam-channel = "0.5.15"
 ratatui = "0.29.0"
-bevy_ratatui = "0.7.1"
-image = "0.25.5"
-bevy_mod_debugdump = "0.12.0"
-log = "0.4.22"
+bevy_ratatui = "0.8.3"
+image = "0.25.6"
+log = "0.4.27"
 
 [dev-dependencies]
-tui-logger = "0.14.0"
+tui-logger = "0.17.2"
 
 [profile.dev]
 opt-level = 1

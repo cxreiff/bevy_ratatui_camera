@@ -60,10 +60,10 @@ fn setup_scene_system(mut commands: Commands) {
 // a RatatuiCameraWidget component will be available in your camera entity.
 fn draw_scene_system(
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widget: Query<&RatatuiCameraWidget>,
-) -> std::io::Result<()> {
+    camera_widget: Single<&RatatuiCameraWidget>,
+) -> Result {
     ratatui.draw(|frame| {
-        camera_widget.single().render(frame.area(), frame.buffer_mut());
+        camera_widget.render(frame.area(), frame.buffer_mut());
     })?;
 
     Ok(())
@@ -109,7 +109,7 @@ that frame and a resize of the render texture will be triggered instead.
 
 ```rust
 ratatui.draw(|frame| {
-    camera_widget.single().render_autoresize(
+    camera_widget.render_autoresize(
         frame.area(),
         frame.buffer_mut(),
         &mut commands,
@@ -183,6 +183,7 @@ depend on the terminal and on user configuration.
 
 | bevy  | bevy_ratatui_camera |
 |-------|---------------------|
+| 0.16  | 0.13                |
 | 0.15  | 0.12                |
 | 0.14  | 0.6                 |
 

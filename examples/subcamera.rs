@@ -5,7 +5,6 @@ use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
-use bevy::utils::error;
 use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
@@ -13,7 +12,7 @@ use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
-use bevy_ratatui_camera::RatatuiSubcamera;
+use bevy_ratatui_camera::RatatuiSubcameras;
 use log::LevelFilter;
 
 mod shared;
@@ -28,7 +27,7 @@ fn main() {
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
             ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 60.)),
-            FrameTimeDiagnosticsPlugin,
+            FrameTimeDiagnosticsPlugin::default(),
             RatatuiPlugins::default(),
             RatatuiCameraPlugin,
         ))
@@ -36,7 +35,7 @@ fn main() {
         .init_resource::<shared::InputState>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup_scene_system)
-        .add_systems(Update, draw_scene_system.map(error))
+        .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
         .add_systems(Update, shared::rotate_spinners_system)
         .run();
@@ -49,35 +48,31 @@ fn setup_scene_system(
 ) {
     shared::spawn_3d_scene(commands.reborrow(), meshes, materials);
 
-    let main_camera_id = commands
-        .spawn((
-            RatatuiCamera::default(),
-            Camera3d::default(),
-            Transform::from_xyz(2., 1., 1.).looking_at(Vec3::Y, Vec3::Z),
-        ))
-        .id();
-
     commands.spawn((
-        RatatuiSubcamera(main_camera_id),
+        RatatuiCamera::default(),
         Camera3d::default(),
-        Transform::from_xyz(1., 2., 1.).looking_at(Vec3::X, Vec3::Z),
+        Transform::from_xyz(2., 1., 1.).looking_at(Vec3::Y, Vec3::Z),
+        related!(
+            RatatuiSubcameras[(
+                Camera3d::default(),
+                Transform::from_xyz(1., 2., 1.).looking_at(Vec3::X, Vec3::Z)
+            )]
+        ),
     ));
 }
 
 fn draw_scene_system(
     mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widget: Query<&RatatuiCameraWidget>,
+    camera_widget: Single<&RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
-) -> std::io::Result<()> {
+) -> Result {
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        camera_widget
-            .single()
-            .render_autoresize(area, frame.buffer_mut(), &mut commands);
+        camera_widget.render_autoresize(area, frame.buffer_mut(), &mut commands);
     })?;
 
     Ok(())

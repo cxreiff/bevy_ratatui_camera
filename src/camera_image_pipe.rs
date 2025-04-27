@@ -138,14 +138,19 @@ pub fn receive_image(image_receiver: &mut ImageReceiver) {
         let aligned_row_bytes = RenderDevice::align_copy_bytes_per_row(row_bytes);
 
         if row_bytes == aligned_row_bytes {
-            image_receiver.receiver_image.data.clone_from(&image_data);
+            image_receiver
+                .receiver_image
+                .data
+                .clone_from(&Some(image_data));
         } else {
-            image_receiver.receiver_image.data = image_data
-                .chunks(aligned_row_bytes)
-                .take(image_receiver.receiver_image.height() as usize)
-                .flat_map(|row| &row[..row_bytes.min(row.len())])
-                .cloned()
-                .collect();
+            image_receiver.receiver_image.data = Some(
+                image_data
+                    .chunks(aligned_row_bytes)
+                    .take(image_receiver.receiver_image.height() as usize)
+                    .flat_map(|row| &row[..row_bytes.min(row.len())])
+                    .cloned()
+                    .collect(),
+            );
         }
     }
 }

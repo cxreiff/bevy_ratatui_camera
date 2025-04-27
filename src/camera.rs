@@ -60,18 +60,13 @@ impl RatatuiCamera {
 /// # pub struct FXCamera;
 /// #
 /// # fn setup_scene_system(mut commands: Commands) {
-/// let main_camera = commands.spawn((
+/// commands.spawn((
 ///     RatatuiCamera::default(),
 ///     Camera3d::default(),
 ///     related!(RatatuiSubcameras[
 ///         (Camera3d::default(), POVCamera),
 ///         (Camera3d::default(), FXCamera),
 ///     ]),
-/// )).id();
-///
-/// commands.spawn((
-///     RatatuiSubcamera(main_camera),
-///     Camera3d::default(),
 /// ));
 /// # };
 /// ```

@@ -30,8 +30,11 @@ fn main() {
                 .set(ImagePlugin::default_nearest())
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
-            ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 120.)),
-            FrameTimeDiagnosticsPlugin::default(),
+            ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 60.)),
+            FrameTimeDiagnosticsPlugin {
+                smoothing_factor: 1.0,
+                ..default()
+            },
             RatatuiPlugins::default(),
             RatatuiCameraPlugin,
         ))

@@ -27,7 +27,10 @@ fn main() {
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
             ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 60.)),
-            FrameTimeDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin {
+                smoothing_factor: 1.0,
+                ..default()
+            },
             RatatuiPlugins::default(),
             RatatuiCameraPlugin,
         ))

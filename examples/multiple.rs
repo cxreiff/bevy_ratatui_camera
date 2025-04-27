@@ -5,7 +5,6 @@ use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
-use bevy::utils::error;
 use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
@@ -32,7 +31,7 @@ fn main() {
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
             ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 120.)),
-            FrameTimeDiagnosticsPlugin,
+            FrameTimeDiagnosticsPlugin::default(),
             RatatuiPlugins::default(),
             RatatuiCameraPlugin,
         ))
@@ -40,7 +39,7 @@ fn main() {
         .init_resource::<shared::InputState>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup_scene_system)
-        .add_systems(Update, draw_scene_system.map(error))
+        .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
         .add_systems(Update, shared::rotate_spinners_system)
         .run();
@@ -84,7 +83,7 @@ fn draw_scene_system(
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
-) -> std::io::Result<()> {
+) -> Result {
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 

@@ -149,7 +149,7 @@ pub fn handle_input_system(
         match key_event.kind {
             KeyEventKind::Press | KeyEventKind::Repeat => match key_event.code {
                 KeyCode::Char('q') => {
-                    exit.send_default();
+                    exit.write_default();
                 }
                 KeyCode::Char('p') => {
                     panic!("Panic!");
@@ -185,16 +185,15 @@ pub fn handle_input_system(
 #[allow(dead_code)]
 pub fn rotate_spinners_system(
     time: Res<Time>,
-    mut cube: Query<&mut Transform, With<Spinner>>,
+    mut cube: Single<&mut Transform, With<Spinner>>,
     mut input: ResMut<InputState>,
 ) {
     match *input {
         InputState::Idle => {
-            cube.single_mut().rotate_z(time.delta_secs());
+            cube.rotate_z(time.delta_secs());
         }
         InputState::Left(duration) => {
-            cube.single_mut()
-                .rotate_z(-time.delta_secs() * duration.min(0.25) * 4.);
+            cube.rotate_z(-time.delta_secs() * duration.min(0.25) * 4.);
             let new_duration = (duration - time.delta_secs()).max(0.);
             *input = if new_duration > 0. {
                 InputState::Left(new_duration)
@@ -203,8 +202,7 @@ pub fn rotate_spinners_system(
             }
         }
         InputState::Right(duration) => {
-            cube.single_mut()
-                .rotate_z(time.delta_secs() * duration.min(0.25) * 4.);
+            cube.rotate_z(time.delta_secs() * duration.min(0.25) * 4.);
             let new_duration = (duration - time.delta_secs()).max(0.);
             *input = if new_duration > 0. {
                 InputState::Right(new_duration)

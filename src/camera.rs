@@ -41,21 +41,32 @@ impl RatatuiCamera {
     }
 }
 
-/// When inserted into a camera entity, rather than creating its own render texture for unicode
-/// conversion, this camera will render to the texture of the RatatuiCamera camera entity indicated
-/// by the provided entity id. The composite render from both cameras will then be converted to
+/// Bevy relation that allows you to create subcameras that render to a main camera's render
+/// texture instead of creating their own. When `RatatuiSubcamera` is within into a camera entity
+/// (instead of a `RatatuiCamera`), rather than creating its own render texture for unicode
+/// conversion, this camera will render to the texture of the RatatuiCamera main camera entity
+/// indicated by the relation. The composite render from both cameras will then be converted to
 /// unicode as one image.
 ///
 /// Example:
 ///
 /// ```no_run
 /// # use bevy::prelude::*;
-/// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiSubcamera};
+/// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiSubcameras};
+/// #
+/// # #[derive(Component)]
+/// # pub struct POVCamera;
+/// # #[derive(Component)]
+/// # pub struct FXCamera;
 /// #
 /// # fn setup_scene_system(mut commands: Commands) {
 /// let main_camera = commands.spawn((
 ///     RatatuiCamera::default(),
 ///     Camera3d::default(),
+///     related!(RatatuiSubcameras[
+///         (Camera3d::default(), POVCamera),
+///         (Camera3d::default(), FXCamera),
+///     ]),
 /// )).id();
 ///
 /// commands.spawn((
@@ -66,15 +77,13 @@ impl RatatuiCamera {
 /// ```
 ///
 #[derive(Component, Debug)]
-// TODO: When bevy 0.16 arrives, use new relations feature.
-// #[relationship(relationship_target = RatatuiCameraTargetedBy)]
+#[relationship(relationship_target = RatatuiSubcameras)]
 pub struct RatatuiSubcamera(pub Entity);
 
-// TODO: When bevy 0.16 arrives, use new relations feature.
-// /// All camera entities that are rendering to this camera entity's render target.
-// #[derive(Component, Debug)]
-// #[relationship_target(relationship = RatatuiCameraTargeting)]
-// struct RatatuiCameraTargetedBy(Vec<Entity>);
+/// Bevy relation target for subcameras that will render to this camera entity's render target.
+#[derive(Component, Debug)]
+#[relationship_target(relationship = RatatuiSubcamera)]
+pub struct RatatuiSubcameras(Vec<Entity>);
 
 /// System set for the systems that perform this crate's functionality. Because important pieces of
 /// this crate's functionality are provided by components that are not added by the user directly,

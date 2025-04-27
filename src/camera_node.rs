@@ -12,7 +12,7 @@ use bevy::{
             NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
-            Buffer, CommandEncoderDescriptor, Extent3d, ImageCopyBuffer, ImageDataLayout,
+            Buffer, CommandEncoderDescriptor, Extent3d, TexelCopyBufferInfo, TexelCopyBufferLayout,
         },
         renderer::{RenderContext, RenderDevice, RenderQueue},
         texture::GpuImage,
@@ -84,27 +84,27 @@ fn copy_to_buffer(
     let block_size = src_image.texture_format.block_copy_size(None).unwrap();
 
     let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row(
-        (src_image.size.x as usize / block_dimensions.0 as usize) * block_size as usize,
+        (src_image.size.width as usize / block_dimensions.0 as usize) * block_size as usize,
     );
 
     let texture_extent = Extent3d {
-        width: src_image.size.x,
-        height: src_image.size.y,
+        width: src_image.size.width,
+        height: src_image.size.height,
         depth_or_array_layers: 1,
     };
 
     encoder.copy_texture_to_buffer(
         src_image.texture.as_image_copy(),
-        ImageCopyBuffer {
+        TexelCopyBufferInfo {
             buffer,
-            layout: ImageDataLayout {
+            layout: TexelCopyBufferLayout {
                 offset: 0,
+                rows_per_image: None,
                 bytes_per_row: Some(
                     std::num::NonZeroU32::new(padded_bytes_per_row as u32)
                         .unwrap()
                         .into(),
                 ),
-                rows_per_image: None,
             },
         },
         texture_extent,

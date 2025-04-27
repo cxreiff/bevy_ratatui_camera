@@ -16,7 +16,6 @@ use crate::{
 /// # use bevy::app::ScheduleRunnerPlugin;
 /// # use bevy::winit::WinitPlugin;
 /// # use bevy::prelude::*;
-/// # use bevy::utils::error;
 /// # use bevy::log::LogPlugin;
 /// # use bevy_ratatui::RatatuiPlugins;
 /// # use bevy_ratatui::terminal::RatatuiContext;
@@ -42,7 +41,7 @@ use crate::{
 ///             RatatuiCameraPlugin,
 ///         ))
 ///         .add_systems(Startup, setup_scene_system)
-///         .add_systems(PostUpdate, draw_scene_system.map(error));
+///         .add_systems(PostUpdate, draw_scene_system);
 /// }
 ///
 /// // add RatatuiCamera to your scene's camera.
@@ -56,10 +55,10 @@ use crate::{
 /// // a RatatuiCameraWidget component will be available in your camera entity.
 /// fn draw_scene_system(
 ///     mut ratatui: ResMut<RatatuiContext>,
-///     camera_widget: Query<&RatatuiCameraWidget>,
-/// ) -> std::io::Result<()> {
+///     camera_widget: Single<&RatatuiCameraWidget>,
+/// ) -> Result {
 ///     ratatui.draw(|frame| {
-///         camera_widget.single().render(frame.area(), frame.buffer_mut());
+///         camera_widget.render(frame.area(), frame.buffer_mut());
 ///     })?;
 ///
 ///     Ok(())

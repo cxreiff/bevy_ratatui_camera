@@ -17,7 +17,7 @@ mod widget_luminance;
 mod widget_none;
 mod widget_utilities;
 
-pub use camera::{RatatuiCamera, RatatuiCameraSet, RatatuiSubcamera};
+pub use camera::{RatatuiCamera, RatatuiCameraSet, RatatuiSubcamera, RatatuiSubcameras};
 pub use camera_edge_detection::{EdgeCharacters, RatatuiCameraEdgeDetection};
 pub use camera_strategy::{HalfBlocksConfig, LuminanceConfig, RatatuiCameraStrategy};
 pub use color_support::ColorSupport;

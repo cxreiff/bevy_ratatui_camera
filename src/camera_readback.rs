@@ -11,7 +11,7 @@ use bevy::{
 
 use crate::{
     RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraSet, RatatuiCameraStrategy,
-    RatatuiCameraWidget, RatatuiSubcamera,
+    RatatuiCameraWidget, RatatuiSubcamera, RatatuiSubcameras,
     camera_image_pipe::{
         ImageReceiver, ImageSender, create_image_pipe, receive_image, send_image_buffer,
     },
@@ -86,14 +86,14 @@ fn handle_ratatui_camera_insert_system(
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
-    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.entity()) {
+    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
         commands
-            .entity(trigger.entity())
+            .entity(trigger.target())
             .observe(handle_ratatui_camera_resize);
 
         insert_camera_readback_components(
             commands.reborrow(),
-            trigger.entity(),
+            trigger.target(),
             &mut image_assets,
             &render_device,
             ratatui_camera,
@@ -106,7 +106,7 @@ fn handle_ratatui_camera_resize(
     trigger: Trigger<RatatuiCameraResize>,
     mut ratatui_cameras: Query<&mut RatatuiCamera>,
 ) {
-    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.entity()).unwrap();
+    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target()).unwrap();
     ratatui_camera.dimensions = trigger.event().dimensions;
 }
 
@@ -115,10 +115,10 @@ fn handle_ratatui_subcamera_insert_system(
     mut ratatui_subcameras: Query<&RatatuiSubcamera>,
     mut camera_targeting_event: EventWriter<CameraTargetingEvent>,
 ) {
-    let RatatuiSubcamera(target_entity) = ratatui_subcameras.get_mut(trigger.entity()).unwrap();
+    let RatatuiSubcamera(target_entity) = ratatui_subcameras.get_mut(trigger.target()).unwrap();
 
-    camera_targeting_event.send(CameraTargetingEvent {
-        targeter_entity: trigger.entity(),
+    camera_targeting_event.write(CameraTargetingEvent {
+        targeter_entity: trigger.target(),
         target_entity: *target_entity,
     });
 }
@@ -127,7 +127,7 @@ fn handle_ratatui_camera_removal_system(
     trigger: Trigger<OnRemove, RatatuiCamera>,
     mut commands: Commands,
 ) {
-    let mut entity = commands.entity(trigger.entity());
+    let mut entity = commands.entity(trigger.target());
     entity.remove::<(RatatuiCameraSender, RatatuiCameraReceiver)>();
 }
 
@@ -138,10 +138,10 @@ fn handle_ratatui_edge_detection_insert_system(
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
-    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.entity()) {
+    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
         insert_edge_detection_readback_components(
             commands.reborrow(),
-            trigger.entity(),
+            trigger.target(),
             &mut image_assets,
             &render_device,
             ratatui_camera,
@@ -153,7 +153,7 @@ fn handle_ratatui_edge_detection_removal_system(
     trigger: Trigger<OnRemove, RatatuiCameraEdgeDetection>,
     mut commands: Commands,
 ) {
-    let mut entity = commands.entity(trigger.entity());
+    let mut entity = commands.entity(trigger.target());
     entity.remove::<(RatatuiSobelSender, RatatuiSobelReceiver)>();
 }
 
@@ -270,10 +270,6 @@ fn create_ratatui_camera_widgets_system(
 // TODO: When observers can be explicitly ordered, use another observer ordered after the
 // RatatuiCamera observers instead.
 //
-// TODO: When bevy 0.16 relations arrive, turn RatatuiSubcamera into relation and use automatically
-// managed "RatatuiSubcameras" component instead of iterating through targeter_cameras for matching
-// subcameras to update their render target.
-//
 /// Handles camera targeting events to point cameras at the correct render targets. An event
 /// handler is used here instead of observers to make sure that the render target is created after
 /// the RatatuiCamera insert/update observers run and so the camera entity definitely already has
@@ -281,8 +277,8 @@ fn create_ratatui_camera_widgets_system(
 /// RatatuiSubcamera is spawned in a single system run, we could potentially try to update the
 /// subcamera's render target before the main camera's render texture is created.
 fn handle_camera_targeting_events_system(
-    target_cameras: Query<&RatatuiCameraSender, With<RatatuiCamera>>,
-    mut targeter_cameras: Query<(&mut Camera, Option<&RatatuiSubcamera>)>,
+    target_cameras: Query<(&RatatuiCameraSender, Option<&RatatuiSubcameras>), With<RatatuiCamera>>,
+    mut cameras: Query<&mut Camera>,
     mut camera_targeting_events: EventReader<CameraTargetingEvent>,
 ) {
     for CameraTargetingEvent {
@@ -290,23 +286,21 @@ fn handle_camera_targeting_events_system(
         target_entity,
     } in camera_targeting_events.read()
     {
-        let sender = target_cameras
+        let (sender, targeting_subcameras) = target_cameras
             .get(*target_entity)
             .expect("CameraTargetingEvent sent with invalid targeting entity");
 
         let render_target = RenderTarget::from(sender.sender_image.clone());
 
-        for (mut subcamera, _) in targeter_cameras.iter_mut().filter(|(_, subcamera_entity)| {
-            if let Some(RatatuiSubcamera(subcamera_entity)) = subcamera_entity {
-                return target_entity == subcamera_entity;
+        if let Some(targeting_subcameras) = targeting_subcameras {
+            for targeting_subcamera in targeting_subcameras.iter() {
+                if let Ok(mut camera) = cameras.get_mut(targeting_subcamera) {
+                    camera.target = render_target.clone()
+                }
             }
-
-            false
-        }) {
-            subcamera.target = render_target.clone();
         }
 
-        let (mut camera, _) = targeter_cameras
+        let mut camera = cameras
             .get_mut(*targeter_entity)
             .expect("CameraTargetingEvent sent with invalid target entity");
 
@@ -327,7 +321,7 @@ fn insert_camera_readback_components(
     let (sender, receiver) =
         create_image_pipe(image_assets, render_device, ratatui_camera.dimensions);
 
-    camera_targeting_event.send(CameraTargetingEvent {
+    camera_targeting_event.write(CameraTargetingEvent {
         targeter_entity: entity,
         target_entity: entity,
     });

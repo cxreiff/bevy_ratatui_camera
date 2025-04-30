@@ -18,6 +18,7 @@ use log::LevelFilter;
 use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
 use ratatui::layout::Layout;
+use ratatui::widgets::Widget;
 
 mod shared;
 
@@ -80,9 +81,8 @@ fn setup_scene_system(
 }
 
 fn draw_scene_system(
-    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widgets: Query<&RatatuiCameraWidget>,
+    mut camera_widgets: Query<&mut RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -90,7 +90,7 @@ fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        let widgets = camera_widgets.iter().enumerate().collect::<Vec<_>>();
+        let widgets = camera_widgets.iter_mut().enumerate().collect::<Vec<_>>();
 
         let layout = Layout::new(
             Direction::Horizontal,
@@ -98,8 +98,8 @@ fn draw_scene_system(
         )
         .split(area);
 
-        for (i, widget) in widgets {
-            widget.render_autoresize(layout[i], frame.buffer_mut(), &mut commands);
+        for (i, mut widget) in widgets {
+            widget.render(layout[i], frame.buffer_mut());
         }
     })?;
 

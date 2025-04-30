@@ -1,13 +1,12 @@
-use bevy::prelude::{Commands, Component, Entity};
+use bevy::prelude::{Component, Entity};
 use image::DynamicImage;
 use ratatui::widgets::Widget;
 use ratatui::{prelude::*, widgets::WidgetRef};
 
-use crate::camera_readback::RatatuiCameraResize;
 use crate::widget_halfblocks::RatatuiCameraWidgetHalf;
 use crate::widget_luminance::RatatuiCameraWidgetLuminance;
 use crate::widget_none::RatatuiCameraWidgetNone;
-use crate::{RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy};
+use crate::{RatatuiCameraEdgeDetection, RatatuiCameraStrategy};
 
 /// Ratatui widget that will be inserted into each RatatuiCamera containing entity and updated each
 /// frame with the last image rendered by the camera. When drawn in a ratatui buffer, it will use
@@ -18,9 +17,6 @@ use crate::{RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraStrategy};
 pub struct RatatuiCameraWidget {
     /// Associated entity.
     pub entity: Entity,
-
-    /// Associated RatatuiCamera.
-    pub ratatui_camera: RatatuiCamera,
 
     /// RatatuiCamera camera's rendered image copied back from the GPU.
     pub camera_image: DynamicImage,
@@ -33,10 +29,18 @@ pub struct RatatuiCameraWidget {
 
     /// RatatuiCamera's edge detection settings, if any.
     pub edge_detection: Option<RatatuiCameraEdgeDetection>,
+
+    /// The area this widget was most recently rendered within.
+    pub last_area: Rect,
 }
 
-impl Widget for &RatatuiCameraWidget {
+impl Widget for &mut RatatuiCameraWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        if self.last_area != area {
+            self.last_area = area;
+            return;
+        }
+
         match self.strategy {
             RatatuiCameraStrategy::HalfBlocks(ref strategy_config) => {
                 RatatuiCameraWidgetHalf::new(
@@ -64,32 +68,6 @@ impl Widget for &RatatuiCameraWidget {
                 )
                 .render_ref(area, buf);
             }
-        }
-    }
-}
-
-impl RatatuiCameraWidget {
-    /// Resize the associated RatatuiCamera to the dimensions of the provided area.
-    ///
-    /// Returns `true` if a resize was triggered, `false` otherwise.
-    pub fn resize(&self, commands: &mut Commands, area: Rect) -> bool {
-        let dimensions = (area.width as u32 * 2, area.height as u32 * 4);
-
-        if self.ratatui_camera.dimensions != dimensions {
-            commands
-                .entity(self.entity)
-                .trigger(RatatuiCameraResize { dimensions });
-
-            return true;
-        }
-
-        false
-    }
-
-    /// Resizes if a resize is needed, otherwise renders.
-    pub fn render_autoresize(&self, area: Rect, buf: &mut Buffer, commands: &mut Commands) {
-        if !self.resize(commands, area) {
-            self.render(area, buf);
         }
     }
 }

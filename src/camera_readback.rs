@@ -12,6 +12,7 @@ use bevy::{
 use crate::{
     RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraSet, RatatuiCameraStrategy,
     RatatuiCameraWidget, RatatuiSubcamera, RatatuiSubcameras,
+    camera::RatatuiCameraLastArea,
     camera_image_pipe::{
         ImageReceiver, ImageSender, create_image_pipe, receive_image, send_image_buffer,
     },
@@ -31,6 +32,7 @@ impl Plugin for RatatuiCameraReadbackPlugin {
         .add_observer(handle_ratatui_edge_detection_insert_system)
         .add_observer(handle_ratatui_edge_detection_removal_system)
         .add_observer(handle_ratatui_subcamera_insert_system)
+        .add_observer(resize_ratatui_camera_observer)
         .add_systems(
             First,
             (
@@ -73,11 +75,6 @@ pub struct CameraTargetingEvent {
     pub target_entity: Entity,
 }
 
-#[derive(Event)]
-pub struct RatatuiCameraResize {
-    pub dimensions: (u32, u32),
-}
-
 fn handle_ratatui_camera_insert_system(
     trigger: Trigger<OnInsert, RatatuiCamera>,
     mut commands: Commands,
@@ -87,10 +84,6 @@ fn handle_ratatui_camera_insert_system(
     render_device: Res<RenderDevice>,
 ) {
     if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
-        commands
-            .entity(trigger.target())
-            .observe(handle_ratatui_camera_resize);
-
         insert_camera_readback_components(
             commands.reborrow(),
             trigger.target(),
@@ -102,12 +95,34 @@ fn handle_ratatui_camera_insert_system(
     }
 }
 
-fn handle_ratatui_camera_resize(
-    trigger: Trigger<RatatuiCameraResize>,
+fn resize_ratatui_camera_observer(
+    trigger: Trigger<OnReplace, RatatuiCameraWidget>,
+    mut commands: Commands,
+    widgets: Query<(&RatatuiCameraWidget, &RatatuiCameraLastArea)>,
     mut ratatui_cameras: Query<&mut RatatuiCamera>,
-) {
-    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target()).unwrap();
-    ratatui_camera.dimensions = trigger.event().dimensions;
+) -> Result {
+    let (widget, last_area) = widgets.get(trigger.target())?;
+    let new_last_area = widget.last_area;
+
+    commands
+        .entity(trigger.target())
+        .insert(RatatuiCameraLastArea(new_last_area));
+
+    if last_area.width == new_last_area.width && last_area.height == new_last_area.height {
+        return Ok(());
+    }
+
+    if !ratatui_cameras.get(trigger.target())?.autoresize {
+        return Ok(());
+    }
+
+    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target())?;
+    ratatui_camera.dimensions = UVec2::new(
+        new_last_area.width as u32 * 2,
+        new_last_area.height as u32 * 4,
+    );
+
+    Ok(())
 }
 
 fn handle_ratatui_subcamera_insert_system(
@@ -230,14 +245,14 @@ fn create_ratatui_camera_widgets_system(
     mut commands: Commands,
     ratatui_cameras: Query<(
         Entity,
-        &RatatuiCamera,
         &RatatuiCameraStrategy,
+        &RatatuiCameraLastArea,
         Option<&RatatuiCameraEdgeDetection>,
         &RatatuiCameraReceiver,
         Option<&RatatuiSobelReceiver>,
     )>,
 ) {
-    for (entity_id, ratatui_camera, strategy, edge_detection, camera_receiver, sobel_receiver) in
+    for (entity_id, strategy, last_area, edge_detection, camera_receiver, sobel_receiver) in
         &ratatui_cameras
     {
         let mut entity = commands.entity(entity_id);
@@ -256,11 +271,11 @@ fn create_ratatui_camera_widgets_system(
 
         let widget = RatatuiCameraWidget {
             entity: entity_id,
-            ratatui_camera: ratatui_camera.clone(),
             camera_image,
             sobel_image,
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
+            last_area: **last_area,
         };
 
         entity.insert(widget);

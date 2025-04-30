@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use ratatui::layout::Rect;
 
 use crate::camera_strategy::RatatuiCameraStrategy;
 
@@ -20,26 +21,39 @@ use crate::camera_strategy::RatatuiCameraStrategy;
 /// ```
 ///
 #[derive(Component, Clone, Debug)]
-#[require(RatatuiCameraStrategy)]
+#[require(RatatuiCameraStrategy, RatatuiCameraLastArea)]
 pub struct RatatuiCamera {
+    /// Whether to automatically resize the render texture based on the previous area the
+    /// associated widget was rendered to.
+    pub autoresize: bool,
+
     /// Dimensions (width, height) of the image the camera will render to.
-    pub dimensions: (u32, u32),
+    pub dimensions: UVec2,
 }
 
 impl Default for RatatuiCamera {
     fn default() -> Self {
         Self {
-            dimensions: (256, 256),
+            autoresize: true,
+            dimensions: UVec2::new(1, 1),
         }
     }
 }
 
 impl RatatuiCamera {
     /// Creates a new RatatuiCamera that renders to an image of the provided dimensions.
-    pub fn new(dimensions: (u32, u32)) -> Self {
-        Self { dimensions }
+    pub fn new(width: u32, height: u32) -> Self {
+        Self {
+            autoresize: false,
+            dimensions: UVec2::new(width, height),
+        }
     }
 }
+
+/// Component representing the area that the camera entity's widget was rendered within last frame.
+/// Used internally for triggering resizes, and translating buffer coordinates to bevy coordinates.
+#[derive(Component, Deref, Clone, Debug, Default)]
+pub struct RatatuiCameraLastArea(pub Rect);
 
 /// Bevy relation that allows you to create subcameras that render to a main camera's render
 /// texture instead of creating their own. When `RatatuiSubcamera` is within into a camera entity

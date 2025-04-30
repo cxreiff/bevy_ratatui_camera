@@ -15,6 +15,7 @@ use bevy_ratatui_camera::RatatuiCameraEdgeDetection;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
+use ratatui::widgets::Widget;
 
 mod shared;
 
@@ -89,10 +90,15 @@ fn setup_scene_system(
 }
 
 fn draw_scene_system(
-    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    foreground_widget: Single<&RatatuiCameraWidget, With<Foreground>>,
-    background_widget: Single<&RatatuiCameraWidget, With<Background>>,
+    mut foreground_widget: Single<
+        &mut RatatuiCameraWidget,
+        (With<Foreground>, Without<Background>),
+    >,
+    mut background_widget: Single<
+        &mut RatatuiCameraWidget,
+        (With<Background>, Without<Foreground>),
+    >,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -100,8 +106,8 @@ fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        background_widget.render_autoresize(area, frame.buffer_mut(), &mut commands);
-        foreground_widget.render_autoresize(area, frame.buffer_mut(), &mut commands);
+        background_widget.render(area, frame.buffer_mut());
+        foreground_widget.render(area, frame.buffer_mut());
     })?;
 
     Ok(())

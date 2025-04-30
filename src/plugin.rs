@@ -55,7 +55,7 @@ use crate::{
 /// // a RatatuiCameraWidget component will be available in your camera entity.
 /// fn draw_scene_system(
 ///     mut ratatui: ResMut<RatatuiContext>,
-///     camera_widget: Single<&RatatuiCameraWidget>,
+///     mut camera_widget: Single<&mut RatatuiCameraWidget>,
 /// ) -> Result {
 ///     ratatui.draw(|frame| {
 ///         camera_widget.render(frame.area(), frame.buffer_mut());

@@ -28,7 +28,7 @@ pub struct ImageReceiver {
 pub fn create_image_pipe(
     images: &mut Assets<Image>,
     render_device: &RenderDevice,
-    dimensions: (u32, u32),
+    dimensions: UVec2,
 ) -> (ImageSender, ImageReceiver) {
     let (sender, receiver, buffer, sender_image, receiver_image) =
         create_image_copy_objects(render_device, images, dimensions);
@@ -50,7 +50,7 @@ pub fn create_image_pipe(
 fn create_image_copy_objects(
     render_device: &RenderDevice,
     images: &mut Assets<Image>,
-    dimensions: (u32, u32),
+    dimensions: UVec2,
 ) -> (
     Sender<Vec<u8>>,
     Receiver<Vec<u8>>,
@@ -66,11 +66,10 @@ fn create_image_copy_objects(
     (sender, receiver, buffer, sender_handle, receiver_texture)
 }
 
-fn create_image_copy_textures(dimensions: (u32, u32)) -> (Image, Image) {
-    let (width, height) = dimensions;
+fn create_image_copy_textures(dimensions: UVec2) -> (Image, Image) {
     let size = Extent3d {
-        width,
-        height,
+        width: dimensions.x,
+        height: dimensions.y,
         ..Default::default()
     };
 
@@ -90,11 +89,11 @@ fn create_image_copy_textures(dimensions: (u32, u32)) -> (Image, Image) {
     (sender_texture, receiver_texture)
 }
 
-fn create_image_copy_buffer(render_device: &RenderDevice, (width, height): (u32, u32)) -> Buffer {
-    let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row((width) as usize) * 4;
+fn create_image_copy_buffer(render_device: &RenderDevice, dimensions: UVec2) -> Buffer {
+    let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row((dimensions.x) as usize) * 4;
     let buffer_descriptor = BufferDescriptor {
         label: None,
-        size: padded_bytes_per_row as u64 * height as u64,
+        size: padded_bytes_per_row as u64 * dimensions.y as u64,
         usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
         mapped_at_creation: false,
     };

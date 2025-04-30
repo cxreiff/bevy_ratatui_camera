@@ -60,7 +60,7 @@ fn setup_scene_system(mut commands: Commands) {
 // a RatatuiCameraWidget component will be available in your camera entity.
 fn draw_scene_system(
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widget: Single<&RatatuiCameraWidget>,
+    mut camera_widget: Single<&mut RatatuiCameraWidget>,
 ) -> Result {
     ratatui.draw(|frame| {
         camera_widget.render(frame.area(), frame.buffer_mut());
@@ -100,21 +100,20 @@ commands.spawn((
 
 ## autoresize
 
-By default, the size of the texture the camera renders to will stay constant,
-and when rendered to the ratatui buffer with `RatatuiCameraWidget::render(...)`
-it will retain its aspect ratio. If you use the
-`RatatuiCameraWidget::render_autoresize` variant instead, whenever the render
-texture doesn't match the size of the render area, rendering will be skipped
-that frame and a resize of the render texture will be triggered instead.
+By default, the dimensions of the texture the camera renders to will be resized
+each frame to the dimensions and aspect ratio of the buffer area it was last
+rendered within, to gracefully handle any changes in the window size or your
+ratatui layout. If you would like to keep a fixed size and aspect ratio
+instead, set `dimensions`, set the `autoresize` attribute inside
+`RatatuiCamera` to false (or use `RatatuiCamera::new(width: u32, height: u32)`
+to do both). Your supplied width and height will be used to create the render
+texture and when rendered to the ratatui buffer with
+`RatatuiCameraWidget::render(...)` it will retain its aspect ratio.
 
 ```rust
-ratatui.draw(|frame| {
-    camera_widget.render_autoresize(
-        frame.area(),
-        frame.buffer_mut(),
-        &mut commands,
-    );
-})?;
+commands.spawn((
+    RatatuiCamera::new(800, 600),
+));
 ```
 
 ## edge detection

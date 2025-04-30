@@ -17,6 +17,7 @@ use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use log::LevelFilter;
+use ratatui::widgets::Widget;
 use shared::Spinner;
 
 mod shared;
@@ -68,9 +69,8 @@ fn setup_scene_system(
 }
 
 fn draw_scene_system(
-    mut commands: Commands,
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widget: Single<&RatatuiCameraWidget>,
+    mut camera_widget: Single<&mut RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -78,7 +78,7 @@ fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        camera_widget.render_autoresize(area, frame.buffer_mut(), &mut commands);
+        camera_widget.render(area, frame.buffer_mut());
     })?;
 
     Ok(())

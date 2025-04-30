@@ -37,7 +37,7 @@ fn main() {
         ))
         .init_resource::<shared::Flags>()
         .init_resource::<shared::InputState>()
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::WHITE))
         .add_systems(Startup, setup_scene_system)
         .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
@@ -62,7 +62,7 @@ fn setup_scene_system(
 
 fn draw_scene_system(
     mut ratatui: ResMut<RatatuiContext>,
-    camera_widget: Single<&RatatuiCameraWidget>,
+    mut camera_widget: Single<&mut RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,

@@ -27,11 +27,11 @@ impl Plugin for RatatuiCameraReadbackPlugin {
             ExtractComponentPlugin::<RatatuiSobelSender>::default(),
         ))
         .add_event::<CameraTargetingEvent>()
-        .add_observer(handle_ratatui_camera_insert_system)
-        .add_observer(handle_ratatui_camera_removal_system)
-        .add_observer(handle_ratatui_edge_detection_insert_system)
-        .add_observer(handle_ratatui_edge_detection_removal_system)
-        .add_observer(handle_ratatui_subcamera_insert_system)
+        .add_observer(handle_ratatui_camera_insert_observer)
+        .add_observer(handle_ratatui_camera_removal_observer)
+        .add_observer(handle_ratatui_edge_detection_insert_observer)
+        .add_observer(handle_ratatui_edge_detection_removal_observer)
+        .add_observer(handle_ratatui_subcamera_insert_observer)
         .add_observer(resize_ratatui_camera_observer)
         .add_systems(
             First,
@@ -75,7 +75,7 @@ pub struct CameraTargetingEvent {
     pub target_entity: Entity,
 }
 
-fn handle_ratatui_camera_insert_system(
+fn handle_ratatui_camera_insert_observer(
     trigger: Trigger<OnInsert, RatatuiCamera>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
@@ -95,37 +95,7 @@ fn handle_ratatui_camera_insert_system(
     }
 }
 
-fn resize_ratatui_camera_observer(
-    trigger: Trigger<OnReplace, RatatuiCameraWidget>,
-    mut commands: Commands,
-    widgets: Query<(&RatatuiCameraWidget, &RatatuiCameraLastArea)>,
-    mut ratatui_cameras: Query<&mut RatatuiCamera>,
-) -> Result {
-    let (widget, last_area) = widgets.get(trigger.target())?;
-    let new_last_area = widget.last_area;
-
-    commands
-        .entity(trigger.target())
-        .insert(RatatuiCameraLastArea(new_last_area));
-
-    if last_area.width == new_last_area.width && last_area.height == new_last_area.height {
-        return Ok(());
-    }
-
-    if !ratatui_cameras.get(trigger.target())?.autoresize {
-        return Ok(());
-    }
-
-    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target())?;
-    ratatui_camera.dimensions = UVec2::new(
-        new_last_area.width as u32 * 2,
-        new_last_area.height as u32 * 4,
-    );
-
-    Ok(())
-}
-
-fn handle_ratatui_subcamera_insert_system(
+fn handle_ratatui_subcamera_insert_observer(
     trigger: Trigger<OnInsert, RatatuiSubcamera>,
     mut ratatui_subcameras: Query<&RatatuiSubcamera>,
     mut camera_targeting_event: EventWriter<CameraTargetingEvent>,
@@ -138,7 +108,7 @@ fn handle_ratatui_subcamera_insert_system(
     });
 }
 
-fn handle_ratatui_camera_removal_system(
+fn handle_ratatui_camera_removal_observer(
     trigger: Trigger<OnRemove, RatatuiCamera>,
     mut commands: Commands,
 ) {
@@ -146,7 +116,7 @@ fn handle_ratatui_camera_removal_system(
     entity.remove::<(RatatuiCameraSender, RatatuiCameraReceiver)>();
 }
 
-fn handle_ratatui_edge_detection_insert_system(
+fn handle_ratatui_edge_detection_insert_observer(
     trigger: Trigger<OnInsert, RatatuiCameraEdgeDetection>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
@@ -164,7 +134,7 @@ fn handle_ratatui_edge_detection_insert_system(
     }
 }
 
-fn handle_ratatui_edge_detection_removal_system(
+fn handle_ratatui_edge_detection_removal_observer(
     trigger: Trigger<OnRemove, RatatuiCameraEdgeDetection>,
     mut commands: Commands,
 ) {
@@ -276,10 +246,41 @@ fn create_ratatui_camera_widgets_system(
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
             last_area: **last_area,
+            overlay_widgets: vec![],
         };
 
         entity.insert(widget);
     }
+}
+
+fn resize_ratatui_camera_observer(
+    trigger: Trigger<OnReplace, RatatuiCameraWidget>,
+    mut commands: Commands,
+    widgets: Query<(&RatatuiCameraWidget, &RatatuiCameraLastArea)>,
+    mut ratatui_cameras: Query<&mut RatatuiCamera>,
+) -> Result {
+    let (widget, last_area) = widgets.get(trigger.target())?;
+    let new_last_area = widget.last_area;
+
+    commands
+        .entity(trigger.target())
+        .insert(RatatuiCameraLastArea(new_last_area));
+
+    if last_area.width == new_last_area.width && last_area.height == new_last_area.height {
+        return Ok(());
+    }
+
+    if !ratatui_cameras.get(trigger.target())?.autoresize {
+        return Ok(());
+    }
+
+    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target())?;
+    ratatui_camera.dimensions = UVec2::new(
+        (new_last_area.width as u32 * 2).max(1),
+        (new_last_area.height as u32 * 4).max(1),
+    );
+
+    Ok(())
 }
 
 // TODO: When observers can be explicitly ordered, use another observer ordered after the

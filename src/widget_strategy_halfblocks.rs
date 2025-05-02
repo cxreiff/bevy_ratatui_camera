@@ -5,21 +5,19 @@ use ratatui::widgets::WidgetRef;
 use crate::RatatuiCameraEdgeDetection;
 use crate::camera_strategy::HalfBlocksConfig;
 use crate::color_support::color_for_color_support;
-use crate::widget_utilities::{
-    calculate_render_area, coords_from_index, replace_detected_edges, resize_image_to_area,
-};
+use crate::widget_utilities::{coords_from_index, replace_detected_edges};
 
 pub struct RatatuiCameraWidgetHalf<'a> {
-    camera_image: &'a DynamicImage,
-    sobel_image: &'a Option<DynamicImage>,
+    camera_image: DynamicImage,
+    sobel_image: Option<DynamicImage>,
     strategy_config: &'a HalfBlocksConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
 
 impl<'a> RatatuiCameraWidgetHalf<'a> {
     pub fn new(
-        camera_image: &'a DynamicImage,
-        sobel_image: &'a Option<DynamicImage>,
+        camera_image: DynamicImage,
+        sobel_image: Option<DynamicImage>,
         strategy_config: &'a HalfBlocksConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
@@ -41,25 +39,17 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
             edge_detection,
         } = self;
 
-        let camera_image = resize_image_to_area(area, camera_image);
-
-        let render_area = calculate_render_area(area, &camera_image);
-
-        let cell_candidates = convert_image_to_cell_candidates(&camera_image, strategy_config);
-
-        let sobel_image = sobel_image
-            .as_ref()
-            .map(|sobel_image| resize_image_to_area(area, sobel_image));
+        let cell_candidates = convert_image_to_cell_candidates(camera_image, strategy_config);
 
         for (index, (mut bg, mut fg)) in cell_candidates.enumerate() {
             let mut character = '▄';
-            let (x, y) = coords_from_index(index, &camera_image);
+            let (x, y) = coords_from_index(index, camera_image);
 
-            if x >= render_area.width || y >= render_area.height {
+            if x >= area.width || y >= area.height {
                 continue;
             }
 
-            let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) else {
+            let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) else {
                 continue;
             };
 

@@ -1,24 +1,7 @@
-use image::{DynamicImage, Rgb, Rgba, imageops::FilterType};
-use ratatui::{layout::Rect, style::Color};
+use image::{DynamicImage, Rgb, Rgba};
+use ratatui::style::Color;
 
 use crate::RatatuiCameraEdgeDetection;
-
-pub fn resize_image_to_area(area: Rect, image: &DynamicImage) -> DynamicImage {
-    image.resize(
-        area.width as u32,
-        area.height as u32 * 2,
-        FilterType::Nearest,
-    )
-}
-
-pub fn calculate_render_area(area: Rect, image: &DynamicImage) -> Rect {
-    Rect {
-        x: area.x + area.width.saturating_sub(image.width() as u16) / 2,
-        y: area.y + (area.height).saturating_sub(image.height() as u16 / 2) / 2,
-        width: image.width() as u16,
-        height: image.height() as u16 / 2,
-    }
-}
 
 pub fn coords_from_index(index: usize, image: &DynamicImage) -> (u16, u16) {
     (

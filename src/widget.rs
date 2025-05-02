@@ -1,11 +1,13 @@
+use std::fmt::Debug;
+
 use bevy::prelude::{Component, Entity};
 use image::DynamicImage;
 use ratatui::widgets::Widget;
 use ratatui::{prelude::*, widgets::WidgetRef};
 
-use crate::widget_halfblocks::RatatuiCameraWidgetHalf;
-use crate::widget_luminance::RatatuiCameraWidgetLuminance;
-use crate::widget_none::RatatuiCameraWidgetNone;
+use crate::widget_strategy_halfblocks::RatatuiCameraWidgetHalf;
+use crate::widget_strategy_luminance::RatatuiCameraWidgetLuminance;
+use crate::widget_strategy_none::RatatuiCameraWidgetNone;
 use crate::{RatatuiCameraEdgeDetection, RatatuiCameraStrategy};
 
 /// Ratatui widget that will be inserted into each RatatuiCamera containing entity and updated each
@@ -32,6 +34,10 @@ pub struct RatatuiCameraWidget {
 
     /// The area this widget was most recently rendered within.
     pub last_area: Rect,
+
+    /// A list of boxed widgets that will be rendered on top of the camera image using the same
+    /// render area.
+    pub overlay_widgets: Vec<Box<dyn RatatuiCameraOverlayWidget>>,
 }
 
 impl Widget for &mut RatatuiCameraWidget {
@@ -41,33 +47,69 @@ impl Widget for &mut RatatuiCameraWidget {
             return;
         }
 
+        let render_area = self.calculate_render_area(area);
+        let (camera_image, sobel_image) = self.resize_images_to_area(render_area);
+
         match self.strategy {
             RatatuiCameraStrategy::HalfBlocks(ref strategy_config) => {
                 RatatuiCameraWidgetHalf::new(
-                    &self.camera_image,
-                    &self.sobel_image,
+                    camera_image,
+                    sobel_image,
                     strategy_config,
                     &self.edge_detection,
                 )
-                .render_ref(area, buf);
+                .render_ref(render_area, buf);
             }
             RatatuiCameraStrategy::Luminance(ref strategy_config) => {
                 RatatuiCameraWidgetLuminance::new(
-                    &self.camera_image,
-                    &self.sobel_image,
+                    camera_image,
+                    sobel_image,
                     strategy_config,
                     &self.edge_detection,
                 )
-                .render_ref(area, buf);
+                .render_ref(render_area, buf);
             }
             RatatuiCameraStrategy::None => {
-                RatatuiCameraWidgetNone::new(
-                    &self.camera_image,
-                    &self.sobel_image,
-                    &self.edge_detection,
-                )
-                .render_ref(area, buf);
+                RatatuiCameraWidgetNone::new(camera_image, sobel_image, &self.edge_detection)
+                    .render_ref(render_area, buf);
             }
+        }
+
+        for widget in &self.overlay_widgets {
+            widget.render_ref(render_area, buf);
         }
     }
 }
+
+impl RatatuiCameraWidget {
+    /// Add an overlay widget to be drawn on top of the camera render.
+    ///
+    /// Using this method rather than calling `render()` on the widget directly provides two
+    /// benefits:
+    ///
+    /// - The widget will be rendered using the same calculated render area used for drawing the
+    ///   camera render (e.g. when empty gutters are used to preserve aspect ratio, pushed widgets
+    ///   will have their render methods called with an area excluding those gutters
+    ///   automatically).
+    ///
+    /// - Their rendering will be skipped when the camera image render is skipped (when the draw
+    ///   area has changed since the last frame and the render texture needs to be resized), which
+    ///   prevents the widgets from "flashing" in the wrong place for one frame.
+    ///
+    /// If you need more control over rendering the widgets but would still like these two
+    /// behaviors:
+    ///
+    /// - Call `calculate_render_area()` on your `RatatuiCameraWidget` to get the correct
+    ///   area that the camera render will actually display (not necessary if autoresize is turned
+    ///   on, as aspect ratio is not preserved and the result will always match the input area.
+    ///
+    /// - Compare the `last_area` attribute on your `RatatuiCameraWidget` to this frame's area, and
+    ///   skip rendering the overlay widgets for this frame if they differ.
+    pub fn push_overlay_widget(&mut self, widget: Box<dyn RatatuiCameraOverlayWidget>) {
+        self.overlay_widgets.push(widget);
+    }
+}
+
+/// Implementors of this trait can be pushed into a `RatatuiCameraWidget` overlay list, where it
+/// will be drawn on top of the camera render.
+pub trait RatatuiCameraOverlayWidget: WidgetRef + Debug + Send + Sync {}

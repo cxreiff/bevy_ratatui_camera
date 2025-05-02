@@ -197,10 +197,7 @@ fn prepare_config_buffer_system(
     for (entity_id, edge_detection) in &mut ratatui_cameras {
         let config = RatatuiCameraNodeSobelConfig::from(edge_detection);
 
-        let buffer = config_buffers
-            .buffers
-            .entry(*entity_id)
-            .or_insert(UniformBuffer::default());
+        let buffer = config_buffers.buffers.entry(*entity_id).or_default();
         buffer.set(config);
         buffer.write_buffer(&render_device, &render_queue);
     }

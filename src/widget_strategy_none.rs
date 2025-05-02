@@ -3,21 +3,18 @@ use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
 
 use crate::RatatuiCameraEdgeDetection;
-use crate::widget_utilities::{
-    average_in_rgb, calculate_render_area, coords_from_index, replace_detected_edges,
-    resize_image_to_area,
-};
+use crate::widget_utilities::{average_in_rgb, coords_from_index, replace_detected_edges};
 
 pub struct RatatuiCameraWidgetNone<'a> {
-    camera_image: &'a DynamicImage,
-    sobel_image: &'a Option<DynamicImage>,
+    camera_image: DynamicImage,
+    sobel_image: Option<DynamicImage>,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
 
 impl<'a> RatatuiCameraWidgetNone<'a> {
     pub fn new(
-        camera_image: &'a DynamicImage,
-        sobel_image: &'a Option<DynamicImage>,
+        camera_image: DynamicImage,
+        sobel_image: Option<DynamicImage>,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
         Self {
@@ -40,19 +37,13 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
             return;
         };
 
-        let camera_image = resize_image_to_area(area, camera_image);
-
-        let render_area = calculate_render_area(area, &camera_image);
-
-        let mut color_characters = convert_image_to_colors(&camera_image);
-
-        let sobel_image = resize_image_to_area(area, sobel_image);
+        let mut color_characters = convert_image_to_colors(camera_image);
 
         for (index, color) in color_characters.iter_mut().enumerate() {
             let mut character = ' ';
-            let (x, y) = coords_from_index(index, &camera_image);
+            let (x, y) = coords_from_index(index, camera_image);
 
-            if x >= render_area.width || y >= render_area.height {
+            if x >= area.width || y >= area.height {
                 continue;
             }
 
@@ -65,7 +56,7 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
             (character, *color) =
                 replace_detected_edges(character, *color, &sobel_value, edge_detection);
 
-            if let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) {
+            if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
                 cell.set_fg(*color).set_char(character);
             }
         }

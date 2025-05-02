@@ -4,23 +4,20 @@ use ratatui::prelude::*;
 use ratatui::widgets::WidgetRef;
 
 use crate::color_support::color_for_color_support;
-use crate::widget_utilities::{
-    average_in_rgba, calculate_render_area, coords_from_index, replace_detected_edges,
-    resize_image_to_area,
-};
+use crate::widget_utilities::{average_in_rgba, coords_from_index, replace_detected_edges};
 use crate::{ColorSupport, LuminanceConfig, RatatuiCameraEdgeDetection};
 
 pub struct RatatuiCameraWidgetLuminance<'a> {
-    camera_image: &'a DynamicImage,
-    sobel_image: &'a Option<DynamicImage>,
+    camera_image: DynamicImage,
+    sobel_image: Option<DynamicImage>,
     strategy_config: &'a LuminanceConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
 
 impl<'a> RatatuiCameraWidgetLuminance<'a> {
     pub fn new(
-        camera_image: &'a DynamicImage,
-        sobel_image: &'a Option<DynamicImage>,
+        camera_image: DynamicImage,
+        sobel_image: Option<DynamicImage>,
         strategy_config: &'a LuminanceConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
@@ -42,28 +39,20 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
             edge_detection,
         } = self;
 
-        let camera_image = resize_image_to_area(area, camera_image);
-
-        let render_area = calculate_render_area(area, &camera_image);
-
         let cell_candidates = convert_image_to_cell_candidates(
-            &camera_image,
+            camera_image,
             &strategy_config.luminance_characters,
             strategy_config.luminance_scale,
         );
 
-        let sobel_image = sobel_image
-            .as_ref()
-            .map(|sobel_image| resize_image_to_area(area, sobel_image));
-
         for (index, (mut character, mut color)) in cell_candidates.enumerate() {
-            let (x, y) = coords_from_index(index, &camera_image);
+            let (x, y) = coords_from_index(index, camera_image);
 
-            if x >= render_area.width || y >= render_area.height {
+            if x >= area.width || y >= area.height {
                 continue;
             }
 
-            let Some(cell) = buf.cell_mut((render_area.x + x, render_area.y + y)) else {
+            let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) else {
                 continue;
             };
 

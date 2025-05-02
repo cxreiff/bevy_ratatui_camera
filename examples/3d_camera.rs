@@ -37,7 +37,7 @@ fn main() {
         ))
         .init_resource::<shared::Flags>()
         .init_resource::<shared::InputState>()
-        .insert_resource(ClearColor(Color::WHITE))
+        .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup_scene_system)
         .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)

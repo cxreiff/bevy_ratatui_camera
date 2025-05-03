@@ -32,18 +32,18 @@ pub struct RatatuiCameraWidget {
     /// RatatuiCamera's edge detection settings, if any.
     pub edge_detection: Option<RatatuiCameraEdgeDetection>,
 
-    /// The area this widget was most recently rendered within.
+    /// The area this widget was rendered within last frame.
     pub last_area: Rect,
 
-    /// A list of boxed widgets that will be rendered on top of the camera image using the same
-    /// render area.
-    pub overlay_widgets: Vec<Box<dyn RatatuiCameraOverlayWidget>>,
+    /// The area this widget was most recently rendered within, which will replace `last_area`
+    /// before the camera widget is available to render next frame.
+    pub(crate) next_last_area: Rect,
 }
 
 impl Widget for &mut RatatuiCameraWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         if self.last_area != area {
-            self.last_area = area;
+            self.next_last_area = area;
             return;
         }
 
@@ -74,42 +74,38 @@ impl Widget for &mut RatatuiCameraWidget {
                     .render_ref(render_area, buf);
             }
         }
-
-        for widget in &self.overlay_widgets {
-            widget.render_ref(render_area, buf);
-        }
     }
 }
 
 impl RatatuiCameraWidget {
-    /// Add an overlay widget to be drawn on top of the camera render.
+    /// Draw an "overlay" widget using the same calculated render area as the camera widget.
     ///
-    /// Using this method rather than calling `render()` on the widget directly provides two
+    /// Using this method rather than directly calling `render()` on the widget provides two
     /// benefits:
     ///
     /// - The widget will be rendered using the same calculated render area used for drawing the
-    ///   camera render (e.g. when empty gutters are used to preserve aspect ratio, pushed widgets
-    ///   will have their render methods called with an area excluding those gutters
-    ///   automatically).
+    ///   camera render (e.g. when empty gutters are used to preserve aspect ratio, overlay widgets
+    ///   will have their render methods called with an area excluding those gutters automatically).
     ///
-    /// - Their rendering will be skipped when the camera image render is skipped (when the draw
-    ///   area has changed since the last frame and the render texture needs to be resized), which
-    ///   prevents the widgets from "flashing" in the wrong place for one frame.
+    /// - Rendering of the overlay widget will be skipped when the camera image render is skipped
+    ///   (when the draw area has changed since the last frame and the render texture needs to be
+    ///   resized), which prevents the widgets from "flashing" in the wrong place for one frame.
     ///
     /// If you need more control over rendering the widgets but would still like these two
     /// behaviors:
     ///
     /// - Call `calculate_render_area()` on your `RatatuiCameraWidget` to get the correct
     ///   area that the camera render will actually display (not necessary if autoresize is turned
-    ///   on, as aspect ratio is not preserved and the result will always match the input area.
+    ///   on, as aspect ratio is not preserved and the result will always match the input area).
     ///
     /// - Compare the `last_area` attribute on your `RatatuiCameraWidget` to this frame's area, and
     ///   skip rendering the overlay widgets for this frame if they differ.
-    pub fn push_overlay_widget(&mut self, widget: Box<dyn RatatuiCameraOverlayWidget>) {
-        self.overlay_widgets.push(widget);
+    pub fn render_overlay(&self, area: Rect, buf: &mut Buffer, widget: &dyn WidgetRef) {
+        if self.last_area != area {
+            return;
+        }
+
+        let render_area = self.calculate_render_area(area);
+        widget.render_ref(render_area, buf);
     }
 }
-
-/// Implementors of this trait can be pushed into a `RatatuiCameraWidget` overlay list, where it
-/// will be drawn on top of the camera render.
-pub trait RatatuiCameraOverlayWidget: WidgetRef + Debug + Send + Sync {}

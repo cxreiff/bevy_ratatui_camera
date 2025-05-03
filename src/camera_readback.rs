@@ -246,7 +246,7 @@ fn create_ratatui_camera_widgets_system(
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
             last_area: **last_area,
-            overlay_widgets: vec![],
+            next_last_area: **last_area,
         };
 
         entity.insert(widget);
@@ -260,13 +260,14 @@ fn resize_ratatui_camera_observer(
     mut ratatui_cameras: Query<&mut RatatuiCamera>,
 ) -> Result {
     let (widget, last_area) = widgets.get(trigger.target())?;
-    let new_last_area = widget.last_area;
 
     commands
         .entity(trigger.target())
-        .insert(RatatuiCameraLastArea(new_last_area));
+        .insert(RatatuiCameraLastArea(widget.next_last_area));
 
-    if last_area.width == new_last_area.width && last_area.height == new_last_area.height {
+    if last_area.width == widget.next_last_area.width
+        && last_area.height == widget.next_last_area.height
+    {
         return Ok(());
     }
 
@@ -276,8 +277,8 @@ fn resize_ratatui_camera_observer(
 
     let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target())?;
     ratatui_camera.dimensions = UVec2::new(
-        (new_last_area.width as u32 * 2).max(1),
-        (new_last_area.height as u32 * 4).max(1),
+        (widget.next_last_area.width as u32 * 2).max(1),
+        (widget.next_last_area.height as u32 * 4).max(1),
     );
 
     Ok(())

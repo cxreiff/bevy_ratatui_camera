@@ -46,10 +46,6 @@ pub fn spawn_3d_scene(
         })),
     ));
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(15., 15., 1.))),
-        Transform::from_xyz(0., 0., -6.),
-    ));
-    commands.spawn((
         PointLight {
             intensity: 2_000_000.,
             shadows_enabled: true,

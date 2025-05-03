@@ -3,7 +3,6 @@
 //! Bevy rendered to the terminal!
 
 mod camera;
-// mod camera_cell_ray;
 mod camera_edge_detection;
 mod camera_image_pipe;
 mod camera_node;
@@ -26,4 +25,4 @@ pub use camera_edge_detection::{EdgeCharacters, RatatuiCameraEdgeDetection};
 pub use camera_strategy::{HalfBlocksConfig, LuminanceConfig, RatatuiCameraStrategy};
 pub use color_support::ColorSupport;
 pub use plugin::RatatuiCameraPlugin;
-pub use widget::{RatatuiCameraOverlayWidget, RatatuiCameraWidget};
+pub use widget::RatatuiCameraWidget;

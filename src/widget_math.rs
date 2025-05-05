@@ -67,7 +67,7 @@ impl RatatuiCameraWidget {
         let x = (cell_coords.x as f32 / render_area.width as f32 - 0.5) * 2.;
         let y = (cell_coords.y as f32 / render_area.height as f32 - 0.5) * -2.;
 
-        Vec3::new(x, y, 0.)
+        Vec3::new(x, y, 0.5)
     }
 
     /// Convert an NDC (Normalized Device Coordinates) value that represents a position in the

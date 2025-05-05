@@ -9,11 +9,14 @@ use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
+use bevy_ratatui::event::MouseEvent;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
+use bevy_ratatui_camera::RatatuiCameraLastArea;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
+use crossterm::event::MouseEventKind;
 use log::LevelFilter;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
@@ -51,12 +54,15 @@ fn main() {
         .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
         .add_systems(Update, shared::rotate_spinners_system)
-        .add_systems(Update, sphere_movement_system)
+        .add_systems(Update, (sphere_movement_system, mouse_follow_system))
         .run();
 }
 
 #[derive(Component, Clone, Debug, Default)]
 pub struct ConeMarker;
+
+#[derive(Component, Clone, Debug, Default)]
+pub struct CenterConeMarker;
 
 #[derive(Component, Clone, Debug, Default)]
 #[require(Transform)]
@@ -167,58 +173,106 @@ fn setup_scene_system(
         ConeMarker,
         Mesh3d(meshes.add(Cone::new(0.5, 1.))),
         MeshMaterial3d(materials.add(Color::srgb(1., 0., 0.))),
-        Transform::from_rotation(Quat::from_rotation_x(PI / 2.)),
     ));
 
     commands.spawn((
         ConeMarker,
         Mesh3d(meshes.add(Cone::new(0.5, 1.))),
         MeshMaterial3d(materials.add(Color::srgb(1., 1., 0.))),
-        Transform::from_rotation(Quat::from_rotation_x(PI / 2.)),
     ));
 
     commands.spawn((
         ConeMarker,
         Mesh3d(meshes.add(Cone::new(0.5, 1.))),
         MeshMaterial3d(materials.add(Color::srgb(0., 0., 1.))),
-        Transform::from_rotation(Quat::from_rotation_x(PI / 2.)),
+    ));
+
+    commands.spawn((
+        CenterConeMarker,
+        Mesh3d(meshes.add(Cone::new(0.25, 1.))),
+        MeshMaterial3d(materials.add(Color::srgb(0., 1., 0.))),
     ));
 
     commands.spawn((
         PointLight {
-            intensity: 2_000_000.,
+            intensity: 1_500_000.,
             shadows_enabled: true,
             ..Default::default()
         },
-        Transform::from_xyz(3., 4., 6.),
+        Transform::from_xyz(4., 4., 4.),
     ));
 
     commands.spawn((
         RatatuiCamera::default(),
         Camera3d::default(),
-        Transform::from_xyz(0.0, 4., 3.).looking_at(Vec3::ZERO, Vec3::Z),
+        Transform::from_xyz(0.0, 3., 4.).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }
 
 fn setup_labels_system(mut commands: Commands, cones: Query<Entity, With<ConeMarker>>) {
     let mut cones = cones.iter();
-    commands
-        .entity(cones.next().unwrap())
-        .with_child(RatatuiTextLabel::new("red"));
-    commands
-        .entity(cones.next().unwrap())
-        .with_child(RatatuiTextLabel::new("yellow"));
-    commands
-        .entity(cones.next().unwrap())
-        .with_child(RatatuiTextLabel::new("blue"));
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("red"),
+        Transform::from_xyz(0., -0.3, 0.),
+    ));
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("yellow"),
+        Transform::from_xyz(0., -0.3, 0.),
+    ));
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("red"),
+        Transform::from_xyz(0., -0.3, 0.),
+    ));
 }
 
 fn sphere_movement_system(mut cones: Query<&mut Transform, With<ConeMarker>>, time: Res<Time>) {
     let elapsed = time.elapsed_secs() * 0.5;
     for (i, mut cone) in cones.iter_mut().enumerate() {
         let elapsed_offset = elapsed + PI * (2. / 3.) * i as f32;
-        cone.translation = Vec3::new(elapsed_offset.sin(), elapsed_offset.cos(), 0.);
+        cone.translation = Vec3::new(elapsed_offset.sin(), 0., elapsed_offset.cos());
     }
+}
+
+fn mouse_follow_system(
+    mut mouse_events: EventReader<MouseEvent>,
+    ratatui_camera: Single<(
+        &Camera,
+        &GlobalTransform,
+        &RatatuiCameraWidget,
+        &RatatuiCameraLastArea,
+    )>,
+    mut center_cone: Single<&mut Transform, With<CenterConeMarker>>,
+) {
+    let Some(mouse_position) = mouse_events
+        .read()
+        .last()
+        .filter(|event| matches!(event.kind, MouseEventKind::Moved))
+        .map(|event| IVec2::new(event.column as i32, event.row as i32))
+    else {
+        return;
+    };
+
+    let (camera, camera_transform, widget, last_area) = *ratatui_camera;
+
+    let ndc = widget.cell_to_ndc(**last_area, mouse_position);
+
+    let world_position = camera.ndc_to_world(camera_transform, ndc).unwrap();
+
+    let viewport_position = camera
+        .world_to_viewport(camera_transform, world_position)
+        .unwrap();
+
+    let ray = camera
+        .viewport_to_world(camera_transform, viewport_position)
+        .unwrap();
+
+    let Some(intersect_d) = ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {
+        return;
+    };
+
+    let intersect = ray.get_point(intersect_d);
+
+    center_cone.translation = intersect;
 }
 
 fn draw_scene_system(

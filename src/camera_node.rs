@@ -13,13 +13,18 @@ use bevy::{
         },
         render_resource::{
             Buffer, CommandEncoderDescriptor, Extent3d, TexelCopyBufferInfo, TexelCopyBufferLayout,
+            Texture,
         },
         renderer::{RenderContext, RenderDevice, RenderQueue},
         texture::GpuImage,
+        view::ViewDepthTexture,
     },
 };
 
-use crate::camera_readback::{RatatuiCameraSender, RatatuiSobelSender};
+use crate::{
+    camera_image_pipe::calculate_buffer_size,
+    camera_readback::{RatatuiCameraSender, RatatuiDepthSender, RatatuiSobelSender},
+};
 
 pub struct RatatuiCameraNodePlugin;
 
@@ -45,7 +50,9 @@ pub struct RatatuiCameraLabel;
 
 impl ViewNode for RatatuiCameraNode {
     type ViewQuery = (
+        &'static ViewDepthTexture,
         &'static RatatuiCameraSender,
+        &'static RatatuiDepthSender,
         Option<&'static RatatuiSobelSender>,
     );
 
@@ -53,48 +60,71 @@ impl ViewNode for RatatuiCameraNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (camera_sender, sobel_sender): QueryItem<'w, Self::ViewQuery>,
+        (depth_texture, camera_sender, depth_sender, sobel_sender): QueryItem<'w, Self::ViewQuery>,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let gpu_images = world.get_resource::<RenderAssets<GpuImage>>().unwrap();
 
         let src_image = gpu_images.get(&camera_sender.sender_image).unwrap();
-        copy_to_buffer(render_context, world, src_image, &camera_sender.buffer);
+        copy_texture_to_buffer(
+            render_context,
+            world,
+            &src_image.texture,
+            &camera_sender.buffer,
+        );
+
+        let expected_buffer_size = calculate_buffer_size(
+            depth_texture.texture.width(),
+            depth_texture.texture.height(),
+        );
+        if expected_buffer_size == depth_sender.buffer.size() {
+            copy_texture_to_buffer(
+                render_context,
+                world,
+                &depth_texture.texture,
+                &depth_sender.buffer,
+            );
+        }
 
         if let Some(sobel_sender) = sobel_sender {
             let src_image_sobel = gpu_images.get(&sobel_sender.sender_image).unwrap();
-            copy_to_buffer(render_context, world, src_image_sobel, &sobel_sender.buffer);
+            copy_texture_to_buffer(
+                render_context,
+                world,
+                &src_image_sobel.texture,
+                &sobel_sender.buffer,
+            );
         }
 
         Ok(())
     }
 }
 
-fn copy_to_buffer(
+fn copy_texture_to_buffer(
     render_context: &mut RenderContext,
     world: &World,
-    src_image: &GpuImage,
+    src_texture: &Texture,
     buffer: &Buffer,
 ) {
     let mut encoder = render_context
         .render_device()
         .create_command_encoder(&CommandEncoderDescriptor::default());
 
-    let block_dimensions = src_image.texture_format.block_dimensions();
-    let block_size = src_image.texture_format.block_copy_size(None).unwrap();
+    let block_dimensions = src_texture.format().block_dimensions();
+    let block_size = src_texture.format().block_copy_size(None).unwrap();
 
     let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row(
-        (src_image.size.width as usize / block_dimensions.0 as usize) * block_size as usize,
+        (src_texture.width() as usize / block_dimensions.0 as usize) * block_size as usize,
     );
 
     let texture_extent = Extent3d {
-        width: src_image.size.width,
-        height: src_image.size.height,
+        width: src_texture.width(),
+        height: src_texture.height(),
         depth_or_array_layers: 1,
     };
 
     encoder.copy_texture_to_buffer(
-        src_image.texture.as_image_copy(),
+        src_texture.as_image_copy(),
         TexelCopyBufferInfo {
             buffer,
             layout: TexelCopyBufferLayout {

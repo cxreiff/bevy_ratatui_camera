@@ -87,7 +87,7 @@ impl ViewNode for RatatuiCameraNodeSobel {
         &self,
         _graph: &mut RenderGraphContext<'_>,
         render_context: &mut RenderContext<'w>,
-        (entity, view_target, view_prepass_textures, view_uniform_offset, sobel_sender): QueryItem<
+        (entity, view_target, prepass_textures, view_uniform_offset, sobel_sender): QueryItem<
             'w,
             Self::ViewQuery,
         >,
@@ -117,8 +117,8 @@ impl ViewNode for RatatuiCameraNodeSobel {
         let view_uniforms = world.resource::<ViewUniforms>();
 
         let (Some(depth_prepass), Some(normal_prepass)) = (
-            view_prepass_textures.depth_view(),
-            view_prepass_textures.normal_view(),
+            prepass_textures.depth_view(),
+            prepass_textures.normal_view(),
         ) else {
             return Ok(());
         };

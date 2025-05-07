@@ -9,6 +9,7 @@ use crate::widget_utilities::{coords_from_index, replace_detected_edges};
 
 pub struct RatatuiCameraWidgetHalf<'a> {
     camera_image: DynamicImage,
+    depth_image: DynamicImage,
     sobel_image: Option<DynamicImage>,
     strategy_config: &'a HalfBlocksConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
@@ -17,12 +18,14 @@ pub struct RatatuiCameraWidgetHalf<'a> {
 impl<'a> RatatuiCameraWidgetHalf<'a> {
     pub fn new(
         camera_image: DynamicImage,
+        depth_image: DynamicImage,
         sobel_image: Option<DynamicImage>,
         strategy_config: &'a HalfBlocksConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
         Self {
             camera_image,
+            depth_image,
             sobel_image,
             strategy_config,
             edge_detection,
@@ -34,6 +37,7 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let Self {
             camera_image,
+            depth_image,
             sobel_image,
             strategy_config,
             edge_detection,
@@ -52,6 +56,12 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
             let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) else {
                 continue;
             };
+
+            if x == 0 && y == 0 {
+                let depth_bytes = depth_image.get_pixel(x as u32, y as u32);
+                let _depth_value = f32::from_le_bytes(depth_bytes.0);
+                // TODO: update a buffer of depth values per terminal cell.
+            }
 
             if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
                 if !sobel_image.in_bounds(x as u32, y as u32 * 2) {

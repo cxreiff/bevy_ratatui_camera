@@ -24,14 +24,17 @@ impl Plugin for RatatuiCameraReadbackPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             ExtractComponentPlugin::<RatatuiCameraSender>::default(),
+            ExtractComponentPlugin::<RatatuiDepthSender>::default(),
             ExtractComponentPlugin::<RatatuiSobelSender>::default(),
         ))
         .add_event::<CameraTargetingEvent>()
         .add_observer(handle_ratatui_camera_insert_observer)
-        .add_observer(handle_ratatui_camera_removal_observer)
-        .add_observer(handle_ratatui_edge_detection_insert_observer)
-        .add_observer(handle_ratatui_edge_detection_removal_observer)
         .add_observer(handle_ratatui_subcamera_insert_observer)
+        .add_observer(ratatui_depth_readback_insert_observer)
+        .add_observer(handle_ratatui_edge_detection_insert_observer)
+        .add_observer(handle_ratatui_camera_removal_observer)
+        .add_observer(ratatui_depth_readback_removal_observer)
+        .add_observer(handle_ratatui_edge_detection_removal_observer)
         .add_observer(resize_ratatui_camera_observer)
         .add_systems(
             First,
@@ -40,8 +43,10 @@ impl Plugin for RatatuiCameraReadbackPlugin {
                 handle_camera_targeting_events_system,
                 (
                     update_ratatui_camera_readback_system,
+                    update_ratatui_depth_readback_system,
                     update_ratatui_edge_detection_readback_system,
                     receive_camera_images_system,
+                    receive_depth_images_system,
                     receive_sobel_images_system,
                 ),
             )
@@ -52,7 +57,12 @@ impl Plugin for RatatuiCameraReadbackPlugin {
         let render_app = app.sub_app_mut(RenderApp);
         render_app.add_systems(
             Render,
-            (send_camera_images_system, send_sobel_images_system).after(RenderSet::Render),
+            (
+                send_camera_images_system,
+                send_depth_images_system,
+                send_sobel_images_system,
+            )
+                .after(RenderSet::Render),
         );
     }
 }
@@ -68,6 +78,12 @@ pub struct RatatuiSobelSender(ImageSender);
 
 #[derive(Component, Deref, DerefMut, Debug)]
 pub struct RatatuiSobelReceiver(ImageReceiver);
+
+#[derive(Component, ExtractComponent, Deref, DerefMut, Clone, Debug)]
+pub struct RatatuiDepthSender(ImageSender);
+
+#[derive(Component, Deref, DerefMut, Debug)]
+pub struct RatatuiDepthReceiver(ImageReceiver);
 
 #[derive(Event, Debug)]
 pub struct CameraTargetingEvent {
@@ -108,12 +124,22 @@ fn handle_ratatui_subcamera_insert_observer(
     });
 }
 
-fn handle_ratatui_camera_removal_observer(
-    trigger: Trigger<OnRemove, RatatuiCamera>,
+fn ratatui_depth_readback_insert_observer(
+    trigger: Trigger<OnInsert, RatatuiCamera>,
     mut commands: Commands,
+    ratatui_cameras: Query<&RatatuiCamera>,
+    mut image_assets: ResMut<Assets<Image>>,
+    render_device: Res<RenderDevice>,
 ) {
-    let mut entity = commands.entity(trigger.target());
-    entity.remove::<(RatatuiCameraSender, RatatuiCameraReceiver)>();
+    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
+        insert_ratatui_depth_readback_components(
+            commands.reborrow(),
+            trigger.target(),
+            &mut image_assets,
+            &render_device,
+            ratatui_camera,
+        );
+    }
 }
 
 fn handle_ratatui_edge_detection_insert_observer(
@@ -132,6 +158,22 @@ fn handle_ratatui_edge_detection_insert_observer(
             ratatui_camera,
         );
     }
+}
+
+fn handle_ratatui_camera_removal_observer(
+    trigger: Trigger<OnRemove, RatatuiCamera>,
+    mut commands: Commands,
+) {
+    let mut entity = commands.entity(trigger.target());
+    entity.remove::<(RatatuiCameraSender, RatatuiCameraReceiver)>();
+}
+
+fn ratatui_depth_readback_removal_observer(
+    trigger: Trigger<OnRemove, RatatuiCamera>,
+    mut commands: Commands,
+) {
+    let mut entity = commands.entity(trigger.target());
+    entity.remove::<(RatatuiDepthSender, RatatuiDepthReceiver)>();
 }
 
 fn handle_ratatui_edge_detection_removal_observer(
@@ -157,6 +199,23 @@ fn update_ratatui_camera_readback_system(
             &render_device,
             ratatui_camera,
             &mut camera_targeting_event,
+        );
+    }
+}
+
+fn update_ratatui_depth_readback_system(
+    mut commands: Commands,
+    ratatui_cameras: Query<(Entity, &RatatuiCamera), Changed<RatatuiCamera>>,
+    mut image_assets: ResMut<Assets<Image>>,
+    render_device: Res<RenderDevice>,
+) {
+    for (entity, ratatui_camera) in &ratatui_cameras {
+        insert_ratatui_depth_readback_components(
+            commands.reborrow(),
+            entity,
+            &mut image_assets,
+            &render_device,
+            ratatui_camera,
         );
     }
 }
@@ -190,6 +249,15 @@ fn send_camera_images_system(
     }
 }
 
+fn send_depth_images_system(
+    ratatui_depth_senders: Query<&RatatuiDepthSender>,
+    render_device: Res<RenderDevice>,
+) {
+    for depth_sender in &ratatui_depth_senders {
+        send_image_buffer(&render_device, &depth_sender.buffer, &depth_sender.sender);
+    }
+}
+
 fn send_sobel_images_system(
     ratatui_sobel_senders: Query<&RatatuiSobelSender>,
     render_device: Res<RenderDevice>,
@@ -202,6 +270,12 @@ fn send_sobel_images_system(
 fn receive_camera_images_system(mut camera_receivers: Query<&mut RatatuiCameraReceiver>) {
     for mut camera_receiver in &mut camera_receivers {
         receive_image(&mut camera_receiver);
+    }
+}
+
+fn receive_depth_images_system(mut depth_receivers: Query<&mut RatatuiDepthReceiver>) {
+    for mut depth_receiver in &mut depth_receivers {
+        receive_image(&mut depth_receiver);
     }
 }
 
@@ -219,17 +293,30 @@ fn create_ratatui_camera_widgets_system(
         &RatatuiCameraLastArea,
         Option<&RatatuiCameraEdgeDetection>,
         &RatatuiCameraReceiver,
+        &RatatuiDepthReceiver,
         Option<&RatatuiSobelReceiver>,
     )>,
 ) {
-    for (entity_id, strategy, last_area, edge_detection, camera_receiver, sobel_receiver) in
-        &ratatui_cameras
+    for (
+        entity_id,
+        strategy,
+        last_area,
+        edge_detection,
+        camera_receiver,
+        depth_receiver,
+        sobel_receiver,
+    ) in &ratatui_cameras
     {
         let mut entity = commands.entity(entity_id);
 
         let camera_image = match camera_receiver.receiver_image.clone().try_into_dynamic() {
             Ok(image) => image,
-            Err(e) => panic!("failed to create camera image buffer {e:?}"),
+            Err(e) => panic!("failed to create camera image from buffer {e:?}"),
+        };
+
+        let depth_image = match depth_receiver.receiver_image.clone().try_into_dynamic() {
+            Ok(image) => image,
+            Err(e) => panic!("failed to create depth image from buffer {e:?}"),
         };
 
         let sobel_image = sobel_receiver.as_ref().map(|image_sobel| {
@@ -242,6 +329,7 @@ fn create_ratatui_camera_widgets_system(
         let widget = RatatuiCameraWidget {
             entity: entity_id,
             camera_image,
+            depth_image,
             sobel_image,
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
@@ -363,6 +451,26 @@ fn insert_edge_detection_readback_components(
         RatatuiSobelReceiver(receiver),
         DepthPrepass,
         NormalPrepass,
+        Msaa::Off,
+    ));
+}
+
+fn insert_ratatui_depth_readback_components(
+    mut commands: Commands,
+    entity: Entity,
+    image_assets: &mut Assets<Image>,
+    render_device: &RenderDevice,
+    ratatui_camera: &RatatuiCamera,
+) {
+    let mut entity = commands.entity(entity);
+
+    let (sender, receiver) =
+        create_image_pipe(image_assets, render_device, ratatui_camera.dimensions);
+
+    entity.insert((
+        RatatuiDepthSender(sender),
+        RatatuiDepthReceiver(receiver),
+        DepthPrepass,
         Msaa::Off,
     ));
 }

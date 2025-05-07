@@ -33,18 +33,23 @@ impl RatatuiCameraWidget {
     }
 
     /// Return the camera image and (if present) sobel texture, resized to fit the area parameter.
-    pub fn resize_images_to_area(&self, area: Rect) -> (DynamicImage, Option<DynamicImage>) {
+    pub fn resize_images_to_area(
+        &self,
+        area: Rect,
+    ) -> (DynamicImage, DynamicImage, Option<DynamicImage>) {
         let width = area.width as u32;
         let height = area.height as u32 * 2;
 
         let camera_image = self.camera_image.resize(width, height, FilterType::Nearest);
+
+        let depth_image = self.depth_image.resize(width, height, FilterType::Nearest);
 
         let sobel_image = self
             .sobel_image
             .as_ref()
             .map(|i| i.resize(width, height, FilterType::Nearest));
 
-        (camera_image, sobel_image)
+        (camera_image, depth_image, sobel_image)
     }
 
     /// Convert a pair of terminal buffer cell coordinates (number of characters from the left edge

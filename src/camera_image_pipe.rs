@@ -90,15 +90,19 @@ fn create_image_copy_textures(dimensions: UVec2) -> (Image, Image) {
 }
 
 fn create_image_copy_buffer(render_device: &RenderDevice, dimensions: UVec2) -> Buffer {
-    let padded_bytes_per_row = RenderDevice::align_copy_bytes_per_row((dimensions.x) as usize) * 4;
     let buffer_descriptor = BufferDescriptor {
         label: None,
-        size: padded_bytes_per_row as u64 * dimensions.y as u64,
+        size: calculate_buffer_size(dimensions.x, dimensions.y),
         usage: BufferUsages::MAP_READ | BufferUsages::COPY_DST,
         mapped_at_creation: false,
     };
 
     render_device.create_buffer(&buffer_descriptor)
+}
+
+pub fn calculate_buffer_size(width: u32, height: u32) -> u64 {
+    let padded_row_bytes = RenderDevice::align_copy_bytes_per_row(width as usize) * 4;
+    padded_row_bytes as u64 * height as u64
 }
 
 pub fn send_image_buffer(render_device: &RenderDevice, buffer: &Buffer, sender: &Sender<Vec<u8>>) {

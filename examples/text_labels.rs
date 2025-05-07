@@ -17,6 +17,8 @@ use bevy_ratatui_camera::RatatuiCameraLastArea;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use crossterm::event::MouseEventKind;
+use image::GenericImageView;
+use image::imageops::FilterType;
 use log::LevelFilter;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
@@ -206,6 +208,7 @@ fn setup_scene_system(
         RatatuiCamera::default(),
         Camera3d::default(),
         Transform::from_xyz(0.0, 3., 4.).looking_at(Vec3::ZERO, Vec3::Y),
+        Msaa::Off,
     ));
 }
 
@@ -282,11 +285,38 @@ fn draw_scene_system(
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
+    mut mouse_events: EventReader<MouseEvent>,
 ) -> Result {
     let (camera, camera_transform, ref mut widget) = *ratatui_camera_single;
 
+    let mouse_position = mouse_events
+        .read()
+        .last()
+        .filter(|event| matches!(event.kind, MouseEventKind::Down(_)))
+        .map(|event| IVec2::new(event.column as i32, event.row as i32));
+
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
+
+        if let Some(mouse_position) = mouse_position {
+            let depth_image = widget.depth_image.resize(
+                area.width as u32,
+                area.height as u32 * 2,
+                FilterType::Nearest,
+            );
+
+            let x = u32::try_from(mouse_position.x - area.x as i32);
+            let y = u32::try_from((mouse_position.y - area.y as i32) * 2);
+
+            if let (Ok(x), Ok(y)) = (x, y) {
+                if x < depth_image.width() && y < depth_image.height() {
+                    let depth = depth_image.get_pixel(x, y);
+                    let depth = f32::from_le_bytes(depth.0);
+
+                    log::info!("{:?}", depth);
+                }
+            }
+        }
 
         widget.render(area, frame.buffer_mut());
 

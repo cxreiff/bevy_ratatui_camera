@@ -52,7 +52,7 @@ impl ViewNode for RatatuiCameraNode {
     type ViewQuery = (
         &'static ViewDepthTexture,
         &'static RatatuiCameraSender,
-        &'static RatatuiDepthSender,
+        Option<&'static RatatuiDepthSender>,
         Option<&'static RatatuiSobelSender>,
     );
 
@@ -73,17 +73,19 @@ impl ViewNode for RatatuiCameraNode {
             &camera_sender.buffer,
         );
 
-        let expected_buffer_size = calculate_buffer_size(
-            depth_texture.texture.width(),
-            depth_texture.texture.height(),
-        );
-        if expected_buffer_size == depth_sender.buffer.size() {
-            copy_texture_to_buffer(
-                render_context,
-                world,
-                &depth_texture.texture,
-                &depth_sender.buffer,
+        if let Some(depth_sender) = depth_sender {
+            let expected_buffer_size = calculate_buffer_size(
+                depth_texture.texture.width(),
+                depth_texture.texture.height(),
             );
+            if expected_buffer_size == depth_sender.buffer.size() {
+                copy_texture_to_buffer(
+                    render_context,
+                    world,
+                    &depth_texture.texture,
+                    &depth_sender.buffer,
+                );
+            }
         }
 
         if let Some(sobel_sender) = sobel_sender {

@@ -36,13 +36,16 @@ impl RatatuiCameraWidget {
     pub fn resize_images_to_area(
         &self,
         area: Rect,
-    ) -> (DynamicImage, DynamicImage, Option<DynamicImage>) {
+    ) -> (DynamicImage, Option<DynamicImage>, Option<DynamicImage>) {
         let width = area.width as u32;
         let height = area.height as u32 * 2;
 
         let camera_image = self.camera_image.resize(width, height, FilterType::Nearest);
 
-        let depth_image = self.depth_image.resize(width, height, FilterType::Nearest);
+        let depth_image = self
+            .depth_image
+            .as_ref()
+            .map(|i| i.resize(width, height, FilterType::Nearest));
 
         let sobel_image = self
             .sobel_image

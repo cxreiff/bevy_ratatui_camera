@@ -1,16 +1,18 @@
 use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
-use ratatui::widgets::WidgetRef;
 
 use crate::RatatuiCameraEdgeDetection;
 use crate::camera_strategy::HalfBlocksConfig;
 use crate::color_support::color_for_color_support;
+use crate::widget_depth_buffer::RatatuiCameraDepthBuffer;
 use crate::widget_utilities::{coords_from_index, replace_detected_edges};
 
+#[derive(Debug)]
 pub struct RatatuiCameraWidgetHalf<'a> {
     camera_image: DynamicImage,
-    depth_image: DynamicImage,
+    depth_image: Option<DynamicImage>,
     sobel_image: Option<DynamicImage>,
+    depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
     strategy_config: &'a HalfBlocksConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
@@ -18,8 +20,9 @@ pub struct RatatuiCameraWidgetHalf<'a> {
 impl<'a> RatatuiCameraWidgetHalf<'a> {
     pub fn new(
         camera_image: DynamicImage,
-        depth_image: DynamicImage,
+        depth_image: Option<DynamicImage>,
         sobel_image: Option<DynamicImage>,
+        depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
         strategy_config: &'a HalfBlocksConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
@@ -27,27 +30,21 @@ impl<'a> RatatuiCameraWidgetHalf<'a> {
             camera_image,
             depth_image,
             sobel_image,
+            depth_buffer,
             strategy_config,
             edge_detection,
         }
     }
 }
 
-impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let Self {
-            camera_image,
-            depth_image,
-            sobel_image,
-            strategy_config,
-            edge_detection,
-        } = self;
-
-        let cell_candidates = convert_image_to_cell_candidates(camera_image, strategy_config);
+impl Widget for &mut RatatuiCameraWidgetHalf<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let cell_candidates =
+            convert_image_to_cell_candidates(&self.camera_image, self.strategy_config);
 
         for (index, (mut bg, mut fg)) in cell_candidates.enumerate() {
             let mut character = '▄';
-            let (x, y) = coords_from_index(index, camera_image);
+            let (x, y) = coords_from_index(index, &self.camera_image);
 
             if x >= area.width || y >= area.height {
                 continue;
@@ -57,14 +54,25 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
                 continue;
             };
 
-            if x == 0 && y == 0 {
-                let depth_bytes = depth_image.get_pixel(x as u32, y as u32);
-                let _depth_value = f32::from_le_bytes(depth_bytes.0);
-                // TODO: update a buffer of depth values per terminal cell.
-            }
+            let (draw_bg, draw_fg) = if let (Some(depth_image), Some(depth_buffer)) =
+                (&self.depth_image, &mut self.depth_buffer)
+            {
+                let draw_bg = depth_buffer
+                    .compare_and_update_from_image(x as u32, y as u32 * 2, &depth_image)
+                    .is_some_and(|draw| draw);
+                let draw_fg = depth_buffer
+                    .compare_and_update_from_image(x as u32, y as u32 * 2 + 1, &depth_image)
+                    .is_some_and(|draw| draw);
 
-            if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
-                if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
+                (draw_bg, draw_fg)
+            } else {
+                (true, true)
+            };
+
+            if let (Some(sobel_image), Some(edge_detection)) =
+                (&self.sobel_image, self.edge_detection)
+            {
+                if !sobel_image.in_bounds(x as u32, y as u32) {
                     continue;
                 }
 
@@ -74,17 +82,17 @@ impl WidgetRef for RatatuiCameraWidgetHalf<'_> {
                     replace_detected_edges(character, fg, &sobel_value, edge_detection);
             };
 
-            if !matches!(bg, Color::Reset) {
-                bg = color_for_color_support(bg, strategy_config.color_support);
+            if !draw_bg || !matches!(bg, Color::Reset) {
+                bg = color_for_color_support(bg, self.strategy_config.color_support);
                 cell.set_bg(bg);
             };
 
-            if !matches!(fg, Color::Reset) {
-                fg = color_for_color_support(fg, strategy_config.color_support);
+            if !draw_fg || !matches!(fg, Color::Reset) {
+                fg = color_for_color_support(fg, self.strategy_config.color_support);
                 cell.set_fg(fg);
             };
 
-            if !matches!(bg, Color::Reset) && !matches!(fg, Color::Reset) {
+            if !matches!(bg, Color::Reset) && !matches!(fg, Color::Reset) && draw_fg {
                 cell.set_char(character);
             };
         }

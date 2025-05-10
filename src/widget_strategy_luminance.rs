@@ -1,15 +1,17 @@
 use bevy::color::Luminance;
 use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
-use ratatui::widgets::WidgetRef;
 
 use crate::color_support::color_for_color_support;
 use crate::widget_utilities::{average_in_rgba, coords_from_index, replace_detected_edges};
-use crate::{ColorSupport, LuminanceConfig, RatatuiCameraEdgeDetection};
+use crate::{ColorSupport, LuminanceConfig, RatatuiCameraDepthBuffer, RatatuiCameraEdgeDetection};
 
+#[derive(Debug)]
 pub struct RatatuiCameraWidgetLuminance<'a> {
     camera_image: DynamicImage,
+    depth_image: Option<DynamicImage>,
     sobel_image: Option<DynamicImage>,
+    depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
     strategy_config: &'a LuminanceConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
@@ -17,36 +19,33 @@ pub struct RatatuiCameraWidgetLuminance<'a> {
 impl<'a> RatatuiCameraWidgetLuminance<'a> {
     pub fn new(
         camera_image: DynamicImage,
+        depth_image: Option<DynamicImage>,
         sobel_image: Option<DynamicImage>,
+        depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
         strategy_config: &'a LuminanceConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
         Self {
             camera_image,
+            depth_image,
             sobel_image,
+            depth_buffer,
             strategy_config,
             edge_detection,
         }
     }
 }
 
-impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        let Self {
-            camera_image,
-            sobel_image,
-            strategy_config,
-            edge_detection,
-        } = self;
-
+impl Widget for &mut RatatuiCameraWidgetLuminance<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let cell_candidates = convert_image_to_cell_candidates(
-            camera_image,
-            &strategy_config.luminance_characters,
-            strategy_config.luminance_scale,
+            &self.camera_image,
+            &self.strategy_config.luminance_characters,
+            self.strategy_config.luminance_scale,
         );
 
         for (index, (mut character, mut color)) in cell_candidates.enumerate() {
-            let (x, y) = coords_from_index(index, camera_image);
+            let (x, y) = coords_from_index(index, &self.camera_image);
 
             if x >= area.width || y >= area.height {
                 continue;
@@ -56,7 +55,26 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                 continue;
             };
 
-            if let (Some(sobel_image), Some(edge_detection)) = (&sobel_image, edge_detection) {
+            if let (Some(depth_image), Some(depth_buffer)) =
+                (&self.depth_image, &mut self.depth_buffer)
+            {
+                if depth_buffer
+                    .compare_and_update_from_image(x as u32, y as u32 * 2, depth_image)
+                    .is_none_or(|draw| !draw)
+                {
+                    continue;
+                }
+                if depth_buffer
+                    .compare_and_update_from_image(x as u32, y as u32 * 2 + 1, depth_image)
+                    .is_none_or(|draw| !draw)
+                {
+                    continue;
+                }
+            }
+
+            if let (Some(sobel_image), Some(edge_detection)) =
+                (&self.sobel_image, self.edge_detection)
+            {
                 if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
                     continue;
                 }
@@ -67,19 +85,19 @@ impl WidgetRef for RatatuiCameraWidgetLuminance<'_> {
                     replace_detected_edges(character, color, &sobel_value, edge_detection);
             };
 
-            if strategy_config.transparent && matches!(color, Color::Reset) {
+            if self.strategy_config.transparent && matches!(color, Color::Reset) {
                 continue;
             }
 
-            color = color_for_color_support(color, strategy_config.color_support);
+            color = color_for_color_support(color, self.strategy_config.color_support);
 
-            if strategy_config.bg_color_scale > 0.0 {
-                if let ColorSupport::TrueColor = strategy_config.color_support {
+            if self.strategy_config.bg_color_scale > 0.0 {
+                if let ColorSupport::TrueColor = self.strategy_config.color_support {
                     if let Color::Rgb(r, g, b) = color {
                         let bg = Color::Rgb(
-                            (r as f32 * strategy_config.bg_color_scale) as u8,
-                            (g as f32 * strategy_config.bg_color_scale) as u8,
-                            (b as f32 * strategy_config.bg_color_scale) as u8,
+                            (r as f32 * self.strategy_config.bg_color_scale) as u8,
+                            (g as f32 * self.strategy_config.bg_color_scale) as u8,
+                            (b as f32 * self.strategy_config.bg_color_scale) as u8,
                         );
                         cell.set_bg(bg);
                     }

@@ -13,19 +13,20 @@ use bevy_ratatui::event::MouseEvent;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
+use bevy_ratatui_camera::RatatuiCameraDepthBuffer;
+use bevy_ratatui_camera::RatatuiCameraDepthDetection;
 use bevy_ratatui_camera::RatatuiCameraLastArea;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use crossterm::event::MouseEventKind;
-use image::GenericImageView;
-use image::imageops::FilterType;
 use log::LevelFilter;
+use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::widgets::Block;
+use ratatui::widgets::StatefulWidgetRef;
 use ratatui::widgets::Widget;
-use ratatui::widgets::WidgetRef;
 
 mod shared;
 
@@ -78,15 +79,180 @@ impl RatatuiTextLabel {
     }
 }
 
+fn setup_scene_system(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    commands.spawn((
+        ConeMarker,
+        Mesh3d(meshes.add(Cone::new(0.5, 1.2))),
+        MeshMaterial3d(materials.add(Color::srgb(1., 0., 0.))),
+    ));
+
+    commands.spawn((
+        ConeMarker,
+        Mesh3d(meshes.add(Cone::new(0.5, 1.2))),
+        MeshMaterial3d(materials.add(Color::srgb(1., 1., 0.))),
+    ));
+
+    commands.spawn((
+        ConeMarker,
+        Mesh3d(meshes.add(Cone::new(0.5, 1.2))),
+        MeshMaterial3d(materials.add(Color::srgb(0., 0., 1.))),
+    ));
+
+    commands.spawn((
+        CenterConeMarker,
+        Mesh3d(meshes.add(Cone::new(0.5, 1.2))),
+        MeshMaterial3d(materials.add(Color::srgb(0., 1., 0.))),
+    ));
+
+    commands.spawn((
+        PointLight {
+            intensity: 1_500_000.,
+            shadows_enabled: true,
+            ..Default::default()
+        },
+        Transform::from_xyz(4., 4., 4.),
+    ));
+
+    commands.spawn((
+        RatatuiCamera::default(),
+        RatatuiCameraDepthDetection,
+        Camera3d::default(),
+        Transform::from_xyz(0.0, 2.5, 3.5).looking_at(Vec3::ZERO, Vec3::Y),
+        Msaa::Off,
+    ));
+}
+
+fn setup_labels_system(mut commands: Commands, cones: Query<Entity, With<ConeMarker>>) {
+    let mut cones = cones.iter();
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("red"),
+        Transform::from_xyz(0., 0., 0.3),
+    ));
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("yellow"),
+        Transform::from_xyz(0., 0., 0.3),
+    ));
+    commands.entity(cones.next().unwrap()).with_child((
+        RatatuiTextLabel::new("blue"),
+        Transform::from_xyz(0., 0., 0.3),
+    ));
+}
+
+fn sphere_movement_system(mut cones: Query<&mut Transform, With<ConeMarker>>, time: Res<Time>) {
+    let elapsed = time.elapsed_secs() * 0.5;
+    for (i, mut cone) in cones.iter_mut().enumerate() {
+        let elapsed_offset = elapsed + PI * (2. / 3.) * i as f32;
+        cone.translation = Vec3::new(elapsed_offset.sin(), 0.0, elapsed_offset.cos());
+    }
+}
+
+fn mouse_follow_system(
+    mut mouse_events: EventReader<MouseEvent>,
+    ratatui_camera: Single<(
+        &Camera,
+        &GlobalTransform,
+        &RatatuiCameraWidget,
+        &RatatuiCameraLastArea,
+    )>,
+    mut center_cone: Single<&mut Transform, With<CenterConeMarker>>,
+) {
+    let Some(mouse_position) = mouse_events
+        .read()
+        .last()
+        .filter(|event| matches!(event.kind, MouseEventKind::Moved))
+        .map(|event| IVec2::new(event.column as i32, event.row as i32))
+    else {
+        return;
+    };
+
+    let (camera, camera_transform, widget, last_area) = *ratatui_camera;
+
+    let ndc = widget.cell_to_ndc(**last_area, mouse_position);
+
+    let world_position = camera.ndc_to_world(camera_transform, ndc).unwrap();
+
+    let viewport_position = camera
+        .world_to_viewport(camera_transform, world_position)
+        .unwrap();
+
+    let ray = camera
+        .viewport_to_world(camera_transform, viewport_position)
+        .unwrap();
+
+    let Some(intersect_d) = ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {
+        return;
+    };
+
+    let intersect = ray.get_point(intersect_d);
+
+    center_cone.translation = intersect;
+}
+
+fn draw_scene_system(
+    mut ratatui: ResMut<RatatuiContext>,
+    mut ratatui_camera_single: Single<(&Camera, &GlobalTransform, &mut RatatuiCameraWidget)>,
+    labels: Query<(&RatatuiTextLabel, &GlobalTransform)>,
+    flags: Res<shared::Flags>,
+    diagnostics: Res<DiagnosticsStore>,
+    kitty_enabled: Option<Res<KittyEnabled>>,
+) -> Result {
+    let (camera, camera_transform, ref mut widget) = *ratatui_camera_single;
+
+    ratatui.draw(|frame| {
+        let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
+
+        widget.render(area, frame.buffer_mut());
+
+        // generate a widget for each label by converting its NDC coordinates to a buffer cell.
+        let mut label_widgets = labels
+            .iter()
+            .filter_map(|(label, label_transform)| {
+                let ndc = camera.world_to_ndc(camera_transform, label_transform.translation())?;
+                let text = format!(
+                    "{}: {:>+01.1}, {:>+01.1}, {:>+01.3}",
+                    label.text.clone(),
+                    ndc.x,
+                    ndc.y,
+                    ndc.z,
+                );
+                let IVec2 { x, y } = widget.ndc_to_cell(area, ndc);
+
+                let depth = ndc.z;
+
+                let overlay_widget = RatatuiTextLabelWidget { text, x, y, depth };
+
+                Some(overlay_widget)
+            })
+            .collect::<Vec<_>>();
+
+        // use `render_overlay` to make sure area is corrected for aspect ratio and widget is
+        // skipped during resize frames.
+        while let Some(label_widget) = label_widgets.pop() {
+            widget.render_overlay_with_depth(area, frame.buffer_mut(), &label_widget);
+        }
+    })?;
+
+    Ok(())
+}
+
 #[derive(Debug)]
 pub struct RatatuiTextLabelWidget {
     text: String,
     x: i32,
     y: i32,
+    depth: f32,
 }
 
-impl WidgetRef for RatatuiTextLabelWidget {
-    fn render_ref(&self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
+impl StatefulWidgetRef for RatatuiTextLabelWidget {
+    type State = RatatuiCameraDepthBuffer;
+
+    fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+        let mut buffer = Buffer::empty(buf.area);
+
         let mut width = self.text.len() as u16 + 4;
         let height = 3;
         let mut span = Line::from(format!(" {} ", self.text.clone()));
@@ -140,13 +306,13 @@ impl WidgetRef for RatatuiTextLabelWidget {
             .fg(ratatui::style::Color::White)
             .bg(ratatui::style::Color::Black);
 
-        span.render(block.inner(label_area), buf);
-        block.render(label_area, buf);
+        span.render(block.inner(label_area), &mut buffer);
+        block.render(label_area, &mut buffer);
 
         if left_cropped {
             let cell_coords = (x_adjusted as u16 + 1, y_adjusted as u16 + 1);
             if area.contains(cell_coords.into()) {
-                if let Some(cell) = buf.cell_mut(cell_coords) {
+                if let Some(cell) = buffer.cell_mut(cell_coords) {
                     cell.set_char('…');
                 }
             }
@@ -158,197 +324,42 @@ impl WidgetRef for RatatuiTextLabelWidget {
                 y_adjusted as u16 + 1,
             );
             if area.contains(cell_coords.into()) {
-                if let Some(cell) = buf.cell_mut(cell_coords) {
+                if let Some(cell) = buffer.cell_mut(cell_coords) {
                     cell.set_char('…');
                 }
             }
         }
-    }
-}
 
-fn setup_scene_system(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    commands.spawn((
-        ConeMarker,
-        Mesh3d(meshes.add(Cone::new(0.5, 1.))),
-        MeshMaterial3d(materials.add(Color::srgb(1., 0., 0.))),
-    ));
+        for i in label_area.x..(label_area.x + label_area.width) {
+            for j in label_area.y..(label_area.y + label_area.height) {
+                let position = (i, j);
+                let Some(cell) = buf.cell_mut(position) else {
+                    continue;
+                };
 
-    commands.spawn((
-        ConeMarker,
-        Mesh3d(meshes.add(Cone::new(0.5, 1.))),
-        MeshMaterial3d(materials.add(Color::srgb(1., 1., 0.))),
-    ));
+                let Some(temp_cell) = buffer.cell(position) else {
+                    continue;
+                };
 
-    commands.spawn((
-        ConeMarker,
-        Mesh3d(meshes.add(Cone::new(0.5, 1.))),
-        MeshMaterial3d(materials.add(Color::srgb(0., 0., 1.))),
-    ));
+                let bg_draw = state.compare_and_update(
+                    i as usize - area.x as usize,
+                    (j as usize - area.y as usize) * 2,
+                    self.depth,
+                );
+                let fg_draw = state.compare_and_update(
+                    i as usize - area.x as usize,
+                    (j as usize - area.y as usize) * 2 + 1,
+                    self.depth,
+                );
 
-    commands.spawn((
-        CenterConeMarker,
-        Mesh3d(meshes.add(Cone::new(0.25, 1.))),
-        MeshMaterial3d(materials.add(Color::srgb(0., 1., 0.))),
-    ));
+                if bg_draw.is_some_and(|draw| draw) {
+                    cell.set_bg(temp_cell.bg);
+                }
 
-    commands.spawn((
-        PointLight {
-            intensity: 1_500_000.,
-            shadows_enabled: true,
-            ..Default::default()
-        },
-        Transform::from_xyz(4., 4., 4.),
-    ));
-
-    commands.spawn((
-        RatatuiCamera::default(),
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 3., 4.).looking_at(Vec3::ZERO, Vec3::Y),
-        Msaa::Off,
-    ));
-}
-
-fn setup_labels_system(mut commands: Commands, cones: Query<Entity, With<ConeMarker>>) {
-    let mut cones = cones.iter();
-    commands.entity(cones.next().unwrap()).with_child((
-        RatatuiTextLabel::new("red"),
-        Transform::from_xyz(0., -0.3, 0.),
-    ));
-    commands.entity(cones.next().unwrap()).with_child((
-        RatatuiTextLabel::new("yellow"),
-        Transform::from_xyz(0., -0.3, 0.),
-    ));
-    commands.entity(cones.next().unwrap()).with_child((
-        RatatuiTextLabel::new("red"),
-        Transform::from_xyz(0., -0.3, 0.),
-    ));
-}
-
-fn sphere_movement_system(mut cones: Query<&mut Transform, With<ConeMarker>>, time: Res<Time>) {
-    let elapsed = time.elapsed_secs() * 0.5;
-    for (i, mut cone) in cones.iter_mut().enumerate() {
-        let elapsed_offset = elapsed + PI * (2. / 3.) * i as f32;
-        cone.translation = Vec3::new(elapsed_offset.sin(), 0., elapsed_offset.cos());
-    }
-}
-
-fn mouse_follow_system(
-    mut mouse_events: EventReader<MouseEvent>,
-    ratatui_camera: Single<(
-        &Camera,
-        &GlobalTransform,
-        &RatatuiCameraWidget,
-        &RatatuiCameraLastArea,
-    )>,
-    mut center_cone: Single<&mut Transform, With<CenterConeMarker>>,
-) {
-    let Some(mouse_position) = mouse_events
-        .read()
-        .last()
-        .filter(|event| matches!(event.kind, MouseEventKind::Moved))
-        .map(|event| IVec2::new(event.column as i32, event.row as i32))
-    else {
-        return;
-    };
-
-    let (camera, camera_transform, widget, last_area) = *ratatui_camera;
-
-    let ndc = widget.cell_to_ndc(**last_area, mouse_position);
-
-    let world_position = camera.ndc_to_world(camera_transform, ndc).unwrap();
-
-    let viewport_position = camera
-        .world_to_viewport(camera_transform, world_position)
-        .unwrap();
-
-    let ray = camera
-        .viewport_to_world(camera_transform, viewport_position)
-        .unwrap();
-
-    let Some(intersect_d) = ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {
-        return;
-    };
-
-    let intersect = ray.get_point(intersect_d);
-
-    center_cone.translation = intersect;
-}
-
-fn draw_scene_system(
-    mut ratatui: ResMut<RatatuiContext>,
-    mut ratatui_camera_single: Single<(&Camera, &GlobalTransform, &mut RatatuiCameraWidget)>,
-    labels: Query<(&RatatuiTextLabel, &GlobalTransform)>,
-    flags: Res<shared::Flags>,
-    diagnostics: Res<DiagnosticsStore>,
-    kitty_enabled: Option<Res<KittyEnabled>>,
-    mut mouse_events: EventReader<MouseEvent>,
-) -> Result {
-    let (camera, camera_transform, ref mut widget) = *ratatui_camera_single;
-
-    let mouse_position = mouse_events
-        .read()
-        .last()
-        .filter(|event| matches!(event.kind, MouseEventKind::Down(_)))
-        .map(|event| IVec2::new(event.column as i32, event.row as i32));
-
-    ratatui.draw(|frame| {
-        let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
-
-        if let Some(mouse_position) = mouse_position {
-            let depth_image = widget.depth_image.resize(
-                area.width as u32,
-                area.height as u32 * 2,
-                FilterType::Nearest,
-            );
-
-            let x = u32::try_from(mouse_position.x - area.x as i32);
-            let y = u32::try_from((mouse_position.y - area.y as i32) * 2);
-
-            if let (Ok(x), Ok(y)) = (x, y) {
-                if x < depth_image.width() && y < depth_image.height() {
-                    let depth = depth_image.get_pixel(x, y);
-                    let depth = f32::from_le_bytes(depth.0);
-
-                    log::info!("{:?}", depth);
+                if fg_draw.is_some_and(|draw| draw) {
+                    cell.set_fg(temp_cell.fg).set_symbol(temp_cell.symbol());
                 }
             }
         }
-
-        widget.render(area, frame.buffer_mut());
-
-        // generate a widget for each label by converting its NDC coordinates to a buffer cell.
-        let mut label_widgets = labels
-            .iter()
-            .filter_map(|(label, label_transform)| {
-                let ndc = camera.world_to_ndc(camera_transform, label_transform.translation())?;
-                let text = format!(
-                    "{}: {:.1}, {:.1}, {:.1}",
-                    label.text.clone(),
-                    ndc.x,
-                    ndc.y,
-                    ndc.z,
-                );
-                let IVec2 { x, y } = widget.ndc_to_cell(area, ndc);
-
-                let overlay_widget = RatatuiTextLabelWidget { text, x, y };
-
-                Some((overlay_widget, ndc.z))
-            })
-            .collect::<Vec<_>>();
-
-        // sort by camera-space depth so "further" labels are covered by "closer" labels.
-        label_widgets.sort_by(|(_, a), (_, b)| a.total_cmp(b).reverse());
-
-        // use `render_overlay` to make sure area is corrected for aspect ratio and widget is
-        // skipped during resize frames.
-        while let Some((label_widget, _)) = label_widgets.pop() {
-            widget.render_overlay(area, frame.buffer_mut(), &label_widget);
-        }
-    })?;
-
-    Ok(())
+    }
 }

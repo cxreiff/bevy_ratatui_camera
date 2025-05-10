@@ -80,7 +80,6 @@ pub fn debug_frame(
         .border_style(Style::default().bg(ratatui::style::Color::Black))
         .title_bottom("[q for quit]")
         .title_bottom("[d for debug]")
-        .title_bottom("[p for panic]")
         .title_alignment(Alignment::Center);
 
     if flags.debug {
@@ -146,9 +145,6 @@ pub fn handle_input_system(
             KeyEventKind::Press | KeyEventKind::Repeat => match key_event.code {
                 KeyCode::Char('q') => {
                     exit.write_default();
-                }
-                KeyCode::Char('p') => {
-                    panic!("Panic!");
                 }
                 KeyCode::Char('d') => {
                     flags.debug = !flags.debug;

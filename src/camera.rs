@@ -50,6 +50,13 @@ impl RatatuiCamera {
     }
 }
 
+/// When within a camera entity alongside a RatatuiCamera, the depth prepass texture will copied
+/// back from the GPU each frame and will be used to update a depth buffer held on the associated
+/// RatatuiCameraWidget. This depth buffer can be used to achieve occlusion effects by skipping
+/// terminal buffer cell draws based on depth comparisons.
+#[derive(Component, Clone, Debug, Default)]
+pub struct RatatuiCameraDepthDetection;
+
 /// Component representing the area that the camera entity's widget was rendered within last frame.
 /// Used internally for triggering resizes, and translating buffer coordinates to bevy coordinates.
 #[derive(Component, Deref, Clone, Debug, Default)]

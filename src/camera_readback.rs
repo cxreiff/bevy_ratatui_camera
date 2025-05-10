@@ -12,7 +12,7 @@ use bevy::{
 use crate::{
     RatatuiCamera, RatatuiCameraEdgeDetection, RatatuiCameraSet, RatatuiCameraStrategy,
     RatatuiCameraWidget, RatatuiSubcamera, RatatuiSubcameras,
-    camera::RatatuiCameraLastArea,
+    camera::{RatatuiCameraDepthDetection, RatatuiCameraLastArea},
     camera_image_pipe::{
         ImageReceiver, ImageSender, create_image_pipe, receive_image, send_image_buffer,
     },
@@ -125,14 +125,14 @@ fn handle_ratatui_subcamera_insert_observer(
 }
 
 fn ratatui_depth_readback_insert_observer(
-    trigger: Trigger<OnInsert, RatatuiCamera>,
+    trigger: Trigger<OnInsert, RatatuiCameraDepthDetection>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
     if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
-        insert_ratatui_depth_readback_components(
+        insert_camera_depth_readback_components(
             commands.reborrow(),
             trigger.target(),
             &mut image_assets,
@@ -169,7 +169,7 @@ fn handle_ratatui_camera_removal_observer(
 }
 
 fn ratatui_depth_readback_removal_observer(
-    trigger: Trigger<OnRemove, RatatuiCamera>,
+    trigger: Trigger<OnRemove, RatatuiCameraDepthDetection>,
     mut commands: Commands,
 ) {
     let mut entity = commands.entity(trigger.target());
@@ -205,12 +205,15 @@ fn update_ratatui_camera_readback_system(
 
 fn update_ratatui_depth_readback_system(
     mut commands: Commands,
-    ratatui_cameras: Query<(Entity, &RatatuiCamera), Changed<RatatuiCamera>>,
+    ratatui_cameras: Query<
+        (Entity, &RatatuiCamera),
+        (With<RatatuiCameraDepthDetection>, Changed<RatatuiCamera>),
+    >,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
     for (entity, ratatui_camera) in &ratatui_cameras {
-        insert_ratatui_depth_readback_components(
+        insert_camera_depth_readback_components(
             commands.reborrow(),
             entity,
             &mut image_assets,
@@ -293,7 +296,7 @@ fn create_ratatui_camera_widgets_system(
         &RatatuiCameraLastArea,
         Option<&RatatuiCameraEdgeDetection>,
         &RatatuiCameraReceiver,
-        &RatatuiDepthReceiver,
+        Option<&RatatuiDepthReceiver>,
         Option<&RatatuiSobelReceiver>,
     )>,
 ) {
@@ -314,10 +317,12 @@ fn create_ratatui_camera_widgets_system(
             Err(e) => panic!("failed to create camera image from buffer {e:?}"),
         };
 
-        let depth_image = match depth_receiver.receiver_image.clone().try_into_dynamic() {
-            Ok(image) => image,
-            Err(e) => panic!("failed to create depth image from buffer {e:?}"),
-        };
+        let depth_image = depth_receiver.as_ref().map(|image_depth| {
+            match image_depth.receiver_image.clone().try_into_dynamic() {
+                Ok(image) => image,
+                Err(e) => panic!("failed to create depth image from buffer {e:?}"),
+            }
+        });
 
         let sobel_image = sobel_receiver.as_ref().map(|image_sobel| {
             match image_sobel.receiver_image.clone().try_into_dynamic() {
@@ -331,6 +336,7 @@ fn create_ratatui_camera_widgets_system(
             camera_image,
             depth_image,
             sobel_image,
+            depth_buffer: None,
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
             last_area: **last_area,
@@ -455,7 +461,7 @@ fn insert_edge_detection_readback_components(
     ));
 }
 
-fn insert_ratatui_depth_readback_components(
+fn insert_camera_depth_readback_components(
     mut commands: Commands,
     entity: Entity,
     image_assets: &mut Assets<Image>,

@@ -336,7 +336,6 @@ fn create_ratatui_camera_widgets_system(
             camera_image,
             depth_image,
             sobel_image,
-            depth_buffer: None,
             strategy: strategy.clone(),
             edge_detection: edge_detection.cloned(),
             last_area: **last_area,

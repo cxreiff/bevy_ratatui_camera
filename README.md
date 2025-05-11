@@ -118,13 +118,12 @@ commands.spawn((
 
 ## edge detection
 
-When using the `RatatuiCameraStrategy::Luminance` strategy and a 3d camera, you
-can also optionally insert a `RatatuiCameraEdgeDetection` component into your
-camera in order to add an edge detection step in the render graph. When
-printing to the ratatui buffer, special characters and an override color can be
-used based on the detected edges and their directions. This can be useful for
-certain visual effects, and distinguishing detail when the text rendering
-causes edges to blend together.
+When using the a 3d camera, you can optionally insert
+a `RatatuiCameraEdgeDetection` component into your camera in order to add an
+edge detection step in the render graph. When printing to the ratatui buffer,
+special characters and an override color can be used based on the detected
+edges and their directions. This can be useful for certain visual effects, and
+distinguishing detail when the text rendering causes edges to blend together.
 
 Set `edge_characters` to `EdgeCharacters::Single(..)` for a single dedicated
 edge character, or set it to `EdgeCharacters::Directional { .. }` to set
@@ -145,6 +144,34 @@ RatatuiCameraEdgeDetection {
     edge_color: Some(ratatui::style::Color::Magenta),
     ..default()
 }
+```
+
+## depth detection
+
+Sometimes you render using multiple widgets that each represent something in
+the same world-space, like multiple camera widgets with different render
+strategies, or a camera widget and text labels that hover over entities in your
+Bevy world. However, because each widget is drawn in order, the last widgets to
+be drawn always cover those previous, even if it seems like they should be
+covered by some other world object (for example, if you draw a world with
+characters, and then draw nametags over the characters, the nametags may be
+visible even if the character is standing behind a wall).
+
+By recording a "closest depth" associated with each terminal buffer cell, and
+skipping draws when the new cell to be drawn has a more distant depth than the
+depth already recorded, you can achieve depth occlusion even when mixing
+multiple kinds of widgets that draw separately. For this purpose,
+`RatatuiCameraWidget` contains a `new_depth_buffer()` function that gives you
+a `RatatuiCameraDepthBuffer` that you can pass into camera widget render calls
+(or other depth-aware widget render calls) to compare against and update while
+drawing.
+
+```rust
+let depth_buffer = &mut widget.new_depth_buffer(area);
+
+widget.render(area, frame.buffer_mut(), depth_buffer);
+
+widget.render_overlay_with_depth(area, frame.buffer_mut(), &custom_widget, depth_buffer);
 ```
 
 ## multiple cameras

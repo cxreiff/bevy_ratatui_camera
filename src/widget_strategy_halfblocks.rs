@@ -12,7 +12,7 @@ pub struct RatatuiCameraWidgetHalf<'a> {
     camera_image: DynamicImage,
     depth_image: Option<DynamicImage>,
     sobel_image: Option<DynamicImage>,
-    depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
+    depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
     strategy_config: &'a HalfBlocksConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
@@ -22,7 +22,7 @@ impl<'a> RatatuiCameraWidgetHalf<'a> {
         camera_image: DynamicImage,
         depth_image: Option<DynamicImage>,
         sobel_image: Option<DynamicImage>,
-        depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
+        depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
         strategy_config: &'a HalfBlocksConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
@@ -58,10 +58,10 @@ impl Widget for &mut RatatuiCameraWidgetHalf<'_> {
                 (&self.depth_image, &mut self.depth_buffer)
             {
                 let draw_bg = depth_buffer
-                    .compare_and_update_from_image(x as u32, y as u32 * 2, &depth_image)
+                    .compare_and_update_from_image(x as u32, y as u32 * 2, depth_image)
                     .is_some_and(|draw| draw);
                 let draw_fg = depth_buffer
-                    .compare_and_update_from_image(x as u32, y as u32 * 2 + 1, &depth_image)
+                    .compare_and_update_from_image(x as u32, y as u32 * 2 + 1, depth_image)
                     .is_some_and(|draw| draw);
 
                 (draw_bg, draw_fg)

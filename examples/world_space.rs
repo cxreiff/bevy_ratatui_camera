@@ -25,8 +25,8 @@ use ratatui::layout::Rect;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::widgets::Block;
+use ratatui::widgets::StatefulWidget;
 use ratatui::widgets::StatefulWidgetRef;
-use ratatui::widgets::Widget;
 
 mod shared;
 
@@ -205,7 +205,9 @@ fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        widget.render(area, frame.buffer_mut());
+        let depth_buffer = &mut widget.new_depth_buffer(area);
+
+        widget.render(area, frame.buffer_mut(), depth_buffer);
 
         // generate a widget for each label by converting its NDC coordinates to a buffer cell.
         let mut label_widgets = labels
@@ -229,10 +231,10 @@ fn draw_scene_system(
             })
             .collect::<Vec<_>>();
 
-        // use `render_overlay` to make sure area is corrected for aspect ratio and widget is
-        // skipped during resize frames.
+        // use `render_overlay_with_depth` to make sure area is corrected for aspect ratio, widget
+        // is skipped during resize frames, and draws are occluded based on the depth buffer.
         while let Some(label_widget) = label_widgets.pop() {
-            widget.render_overlay_with_depth(area, frame.buffer_mut(), &label_widget);
+            widget.render_overlay_with_depth(area, frame.buffer_mut(), &label_widget, depth_buffer);
         }
     })?;
 
@@ -306,8 +308,11 @@ impl StatefulWidgetRef for RatatuiTextLabelWidget {
             .fg(ratatui::style::Color::White)
             .bg(ratatui::style::Color::Black);
 
-        span.render(block.inner(label_area), &mut buffer);
-        block.render(label_area, &mut buffer);
+        {
+            use ratatui::widgets::Widget;
+            span.render(block.inner(label_area), &mut buffer);
+            block.render(label_area, &mut buffer);
+        }
 
         if left_cropped {
             let cell_coords = (x_adjusted as u16 + 1, y_adjusted as u16 + 1);

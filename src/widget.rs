@@ -36,10 +36,6 @@ pub struct RatatuiCameraWidget {
     /// RatatuiCamera's edge detection settings, if any.
     pub edge_detection: Option<RatatuiCameraEdgeDetection>,
 
-    /// A depth buffer for keeping track of the depth of each character drawn to the buffer, for
-    /// occluding characters "behind" others with respect to a bevy camera.
-    pub depth_buffer: Option<RatatuiCameraDepthBuffer>,
-
     /// The area this widget was rendered within last frame.
     pub last_area: Rect,
 
@@ -50,24 +46,43 @@ pub struct RatatuiCameraWidget {
 
 impl Widget for &mut RatatuiCameraWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        self.render_common(area, buf, None);
+    }
+}
+
+impl StatefulWidget for &mut RatatuiCameraWidget {
+    type State = RatatuiCameraDepthBuffer;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        self.render_common(area, buf, Some(state));
+    }
+}
+
+impl RatatuiCameraWidget {
+    /// Check for a change in area since last frame, updating the `next_last_area` attribute to
+    /// trigger a resize if necessary. Returns `true` if the area changed, otherwise `false`.
+    fn area_check(&mut self, area: Rect) -> bool {
         if self.last_area != area {
             self.next_last_area = area;
+            return true;
+        }
+
+        false
+    }
+
+    /// Common render method shared by the Widget and StatefulWidget `render()` implementations.
+    fn render_common(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        depth_buffer: Option<&mut RatatuiCameraDepthBuffer>,
+    ) {
+        if self.area_check(area) {
             return;
         }
 
         let render_area = self.calculate_render_area(area);
         let (camera_image, depth_image, sobel_image) = self.resize_images_to_area(render_area);
-
-        // TODO: A purer implementation of depth checks might be to implement StatefulWidget for
-        // RatatuiCameraWidget, with the state being a RatatuiCameraDepthBuffer. That way, rather
-        // than figuring out when to initialize the depth buffer ourselves, the user would
-        // instantiate their own depth buffer and pass it in to `RatatuiCameraWidget::render_ref()`
-        // as the state parameter, as well as into their own depth-aware widgets or into other
-        // camera widgets. This gives the user more explicit control over which widgets care about
-        // the depth of whichever other widgets.
-        if depth_image.is_some() && self.depth_buffer.is_none() {
-            self.depth_buffer = Some(RatatuiCameraDepthBuffer::new(render_area));
-        }
 
         match self.strategy {
             RatatuiCameraStrategy::HalfBlocks(ref strategy_config) => {
@@ -75,7 +90,7 @@ impl Widget for &mut RatatuiCameraWidget {
                     camera_image,
                     depth_image,
                     sobel_image,
-                    &mut self.depth_buffer,
+                    depth_buffer,
                     strategy_config,
                     &self.edge_detection,
                 )
@@ -86,7 +101,7 @@ impl Widget for &mut RatatuiCameraWidget {
                     camera_image,
                     depth_image,
                     sobel_image,
-                    &mut self.depth_buffer,
+                    depth_buffer,
                     strategy_config,
                     &self.edge_detection,
                 )
@@ -98,9 +113,20 @@ impl Widget for &mut RatatuiCameraWidget {
             }
         }
     }
-}
 
-impl RatatuiCameraWidget {
+    /// Create a depth buffer that can be used for occlusion effects. Pass the resulting buffer
+    /// into this widget's `StatefulWidget::render()` implementation to record depths from the
+    /// associated camera's depth prepass (if present). Pass the same buffer into other camera
+    /// render methods and into `render_overlay_with_depth()` in order to record their depths as
+    /// well, skipping terminal cells when they would be occluded.
+    ///
+    /// Note that objects will only occlude if they show up in Bevy's render prepass, so please
+    /// consult Bevy's documentation on what is excluded.
+    pub fn new_depth_buffer(&self, area: Rect) -> RatatuiCameraDepthBuffer {
+        let render_area = self.calculate_render_area(area);
+        RatatuiCameraDepthBuffer::new(render_area)
+    }
+
     /// Draw an "overlay" widget using the same calculated render area as the camera widget.
     ///
     /// Using this method rather than directly calling `render()` on the widget provides two
@@ -129,6 +155,7 @@ impl RatatuiCameraWidget {
         }
 
         let render_area = self.calculate_render_area(area);
+
         widget.render_ref(render_area, buf);
     }
 
@@ -147,16 +174,13 @@ impl RatatuiCameraWidget {
         area: Rect,
         buf: &mut Buffer,
         widget: &dyn StatefulWidgetRef<State = RatatuiCameraDepthBuffer>,
+        depth_buffer: &mut RatatuiCameraDepthBuffer,
     ) {
         if self.last_area != area {
             return;
         }
 
         let render_area = self.calculate_render_area(area);
-
-        let depth_buffer = self
-            .depth_buffer
-            .get_or_insert(RatatuiCameraDepthBuffer::new(render_area));
 
         widget.render_ref(render_area, buf, depth_buffer);
     }

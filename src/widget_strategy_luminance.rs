@@ -11,7 +11,7 @@ pub struct RatatuiCameraWidgetLuminance<'a> {
     camera_image: DynamicImage,
     depth_image: Option<DynamicImage>,
     sobel_image: Option<DynamicImage>,
-    depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
+    depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
     strategy_config: &'a LuminanceConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
@@ -21,7 +21,7 @@ impl<'a> RatatuiCameraWidgetLuminance<'a> {
         camera_image: DynamicImage,
         depth_image: Option<DynamicImage>,
         sobel_image: Option<DynamicImage>,
-        depth_buffer: &'a mut Option<RatatuiCameraDepthBuffer>,
+        depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
         strategy_config: &'a LuminanceConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {

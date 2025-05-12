@@ -9,6 +9,7 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui::terminal::RatatuiContext;
+use bevy_ratatui_camera::ColorChoice;
 use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
@@ -41,7 +42,7 @@ fn main() {
         ))
         .init_resource::<shared::Flags>()
         .init_resource::<shared::InputState>()
-        .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::srgba(0., 0., 0., 0.)))
         .add_systems(Startup, setup_scene_system)
         .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
@@ -65,7 +66,7 @@ fn setup_scene_system(
     commands.spawn((
         RatatuiCamera::default(),
         RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            bg_color_scale: 0.2,
+            background_color: Some(ColorChoice::Scale(0.3)),
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             ..default()
         }),

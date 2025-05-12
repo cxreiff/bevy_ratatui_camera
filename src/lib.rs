@@ -24,7 +24,7 @@ pub use camera::{
     RatatuiSubcamera, RatatuiSubcameras,
 };
 pub use camera_edge_detection::{EdgeCharacters, RatatuiCameraEdgeDetection};
-pub use camera_strategy::{HalfBlocksConfig, LuminanceConfig, RatatuiCameraStrategy};
+pub use camera_strategy::{ColorChoice, HalfBlocksConfig, LuminanceConfig, RatatuiCameraStrategy};
 pub use color_support::ColorSupport;
 pub use plugin::RatatuiCameraPlugin;
 pub use widget::RatatuiCameraWidget;

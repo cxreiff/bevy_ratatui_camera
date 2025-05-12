@@ -39,7 +39,7 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
 
         let mut color_characters = convert_image_to_colors(camera_image);
 
-        for (index, color) in color_characters.iter_mut().enumerate() {
+        for (index, &mut mut fg) in color_characters.iter_mut().enumerate() {
             let mut character = ' ';
             let (x, y) = coords_from_index(index, camera_image);
 
@@ -47,27 +47,28 @@ impl WidgetRef for RatatuiCameraWidgetNone<'_> {
                 continue;
             }
 
+            let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) else {
+                continue;
+            };
+
             if !sobel_image.in_bounds(x as u32, y as u32 * 2) {
                 continue;
             }
 
             let sobel_value = sobel_image.get_pixel(x as u32, y as u32 * 2);
 
-            (character, *color) =
-                replace_detected_edges(character, *color, &sobel_value, edge_detection);
+            (character, fg) = replace_detected_edges(character, fg, &sobel_value, edge_detection);
 
-            if let Some(cell) = buf.cell_mut((area.x + x, area.y + y)) {
-                cell.set_fg(*color).set_char(character);
-            }
+            fg.map(|fg| cell.set_fg(fg).set_char(character));
         }
     }
 }
 
-fn convert_image_to_colors(camera_image: &DynamicImage) -> Vec<Color> {
+fn convert_image_to_colors(camera_image: &DynamicImage) -> Vec<Option<Color>> {
     let rgb_triplets = convert_image_to_rgb_triplets(camera_image);
     let colors = rgb_triplets
         .iter()
-        .map(|rgb| Color::Rgb(rgb[0], rgb[1], rgb[2]));
+        .map(|rgb| Some(Color::Rgb(rgb[0], rgb[1], rgb[2])));
 
     colors.collect()
 }

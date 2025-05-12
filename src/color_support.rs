@@ -81,12 +81,12 @@ pub enum ColorSupport {
     ANSI16,
 }
 
-pub fn color_for_color_support(color: Color, support: ColorSupport) -> Color {
-    match support {
+pub fn color_for_color_support(color: Option<Color>, support: ColorSupport) -> Option<Color> {
+    color.map(|color| match support {
         ColorSupport::TrueColor => color,
         ColorSupport::ANSI256 => color_to_ansi_256(color),
         ColorSupport::ANSI16 => color_to_ansi_16(color),
-    }
+    })
 }
 
 fn color_to_ansi_256(color: Color) -> Color {

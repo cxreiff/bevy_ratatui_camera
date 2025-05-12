@@ -1,3 +1,5 @@
+use std::{fmt::Debug, sync::Arc};
+
 use bevy::prelude::*;
 
 use crate::color_support::ColorSupport;
@@ -179,10 +181,11 @@ pub struct LuminanceConfig {
     /// 1.0, each luminance value is multiplied by a scaling value first.
     pub luminance_scale: f32,
 
-    /// Percentage of each terminal cell's foreground color, as a float between 0.0 and 1.0, that
-    /// each corresponding cell background will be set to. Defaults to 0.0. Useful for reducing the
-    /// contrast between the foreground and background, or increasing the overall brightness.
-    pub bg_color_scale: f32,
+    /// If present, customizes how the foreground color should be chosen per character.
+    pub foreground_color: Option<ColorChoice>,
+
+    /// If present, customizes how the background color should be chosen per character.
+    pub background_color: Option<ColorChoice>,
 
     /// Please refer to the same field in [HalfBlocksConfig].
     pub transparent: bool,
@@ -216,9 +219,78 @@ impl Default for LuminanceConfig {
         Self {
             luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
             luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
-            bg_color_scale: 0.0,
+            foreground_color: None,
+            background_color: None,
             transparent: true,
             color_support: ColorSupport::TrueColor,
         }
+    }
+}
+
+/// Options for customizing a terminal buffer color (foreground or background). Customization
+/// happens after depth detection and edge detection, and before the conversion for color support
+/// and the transparency check.
+#[derive(Clone)]
+pub enum ColorChoice {
+    /// Overrides the color with a single provided color.
+    Color(ratatui::style::Color),
+
+    /// Color will be determined by scaling the foreground color by the provided value. For
+    /// example, `ColorChoice::Scale(0.5)` will be half as bright as the calculated foreground
+    /// color.
+    Scale(f32),
+
+    /// Provide a callback that will be used to determine the color. When the callback is called,
+    /// the first argument is the foreground color, and the second argument is the background
+    /// color, as determined by the conversion strategy. Both are an `Option`, as they may be
+    /// `None` in cases where the strategy has determined it should skip drawing that pixel or cell
+    /// (e.g. if the alpha for that pixel is zero). The result is also an
+    /// `Option<ratatui::style::Color>`, as you can signal that drawing the foreground or
+    /// background should be skipped by conditionally returning `None` from the callback. Your
+    /// callback needs to be wrapped in an `Arc` as `RatatuiCameraStrategy` is cloned during
+    /// render (or you can use the `from_callback()` convenience method which wraps it for you).
+    Callback(
+        Arc<
+            dyn Fn(
+                    Option<ratatui::style::Color>,
+                    Option<ratatui::style::Color>,
+                ) -> Option<ratatui::style::Color>
+                + Send
+                + Sync
+                + 'static,
+        >,
+    ),
+}
+
+impl Default for ColorChoice {
+    fn default() -> Self {
+        Self::Scale(0.5)
+    }
+}
+
+impl Debug for ColorChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ColorChoice::Color(color) => write!(f, "ColorChoice::Color({:?})", color),
+            ColorChoice::Scale(scale) => write!(f, "ColorChoice::Scale({})", scale),
+            ColorChoice::Callback(_) => write!(f, "ColorChoice::Callback(...)"),
+        }
+    }
+}
+
+impl ColorChoice {
+    /// See [ColorChoice::Callback]. This convenience method creates a `ColorChoice::Callback` enum
+    /// variant by wrapping the provided callback in an `Arc`.
+    pub fn from_callback<F>(callback: F) -> Self
+    where
+        F: Fn(
+                Option<ratatui::style::Color>,
+                Option<ratatui::style::Color>,
+            ) -> Option<ratatui::style::Color>
+            + Send
+            + Sync
+            + 'static,
+    {
+        Self::Callback(Arc::new(callback))
     }
 }

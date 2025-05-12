@@ -3,8 +3,10 @@ use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
 
 use crate::color_support::color_for_color_support;
-use crate::widget_utilities::{average_in_rgba, coords_from_index, replace_detected_edges};
-use crate::{ColorSupport, LuminanceConfig, RatatuiCameraDepthBuffer, RatatuiCameraEdgeDetection};
+use crate::widget_utilities::{
+    average_in_rgba, colors_for_color_choices, coords_from_index, replace_detected_edges,
+};
+use crate::{LuminanceConfig, RatatuiCameraDepthBuffer, RatatuiCameraEdgeDetection};
 
 #[derive(Debug)]
 pub struct RatatuiCameraWidgetLuminance<'a> {
@@ -44,7 +46,8 @@ impl Widget for &mut RatatuiCameraWidgetLuminance<'_> {
             self.strategy_config.luminance_scale,
         );
 
-        for (index, (mut character, mut color)) in cell_candidates.enumerate() {
+        for (index, (mut character, mut fg)) in cell_candidates.enumerate() {
+            let mut bg = None;
             let (x, y) = coords_from_index(index, &self.camera_image);
 
             if x >= area.width || y >= area.height {
@@ -81,30 +84,26 @@ impl Widget for &mut RatatuiCameraWidgetLuminance<'_> {
 
                 let sobel_value = sobel_image.get_pixel(x as u32, y as u32 * 2);
 
-                (character, color) =
-                    replace_detected_edges(character, color, &sobel_value, edge_detection);
+                (character, fg) =
+                    replace_detected_edges(character, fg, &sobel_value, edge_detection);
             };
 
-            if self.strategy_config.transparent && matches!(color, Color::Reset) {
+            (fg, bg) = colors_for_color_choices(
+                fg,
+                bg,
+                &self.strategy_config.foreground_color,
+                &self.strategy_config.background_color,
+            );
+
+            if self.strategy_config.transparent && fg.is_none() {
                 continue;
             }
 
-            color = color_for_color_support(color, self.strategy_config.color_support);
+            fg = color_for_color_support(fg, self.strategy_config.color_support);
+            bg = color_for_color_support(bg, self.strategy_config.color_support);
 
-            if self.strategy_config.bg_color_scale > 0.0 {
-                if let ColorSupport::TrueColor = self.strategy_config.color_support {
-                    if let Color::Rgb(r, g, b) = color {
-                        let bg = Color::Rgb(
-                            (r as f32 * self.strategy_config.bg_color_scale) as u8,
-                            (g as f32 * self.strategy_config.bg_color_scale) as u8,
-                            (b as f32 * self.strategy_config.bg_color_scale) as u8,
-                        );
-                        cell.set_bg(bg);
-                    }
-                }
-            }
-
-            cell.set_fg(color).set_char(character);
+            fg.map(|fg| cell.set_fg(fg).set_char(character));
+            bg.map(|bg| cell.set_bg(bg));
         }
     }
 }
@@ -113,16 +112,16 @@ fn convert_image_to_cell_candidates(
     camera_image: &DynamicImage,
     luminance_characters: &[char],
     luminance_scale: f32,
-) -> impl Iterator<Item = (char, Color)> {
+) -> impl Iterator<Item = (char, Option<Color>)> {
     let rgba_quads = convert_image_to_rgba_quads(camera_image);
 
     rgba_quads.into_iter().map(move |rgba| {
         let character =
             convert_rgba_quads_to_character(&rgba, luminance_characters, luminance_scale);
         let color = if rgba[3] == 0 {
-            Color::Reset
+            None
         } else {
-            Color::Rgb(rgba[0], rgba[1], rgba[2])
+            Some(Color::Rgb(rgba[0], rgba[1], rgba[2]))
         };
         (character, color)
     })

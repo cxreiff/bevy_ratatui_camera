@@ -82,18 +82,14 @@ impl Widget for &mut RatatuiCameraWidgetHalf<'_> {
                     replace_detected_edges(character, fg, &sobel_value, edge_detection);
             };
 
-            if !draw_bg || !matches!(bg, Color::Reset) {
+            if draw_bg {
                 bg = color_for_color_support(bg, self.strategy_config.color_support);
-                cell.set_bg(bg);
+                bg.map(|bg| cell.set_bg(bg));
             };
 
-            if !draw_fg || !matches!(fg, Color::Reset) {
+            if draw_fg {
                 fg = color_for_color_support(fg, self.strategy_config.color_support);
-                cell.set_fg(fg);
-            };
-
-            if !matches!(bg, Color::Reset) && !matches!(fg, Color::Reset) && draw_fg {
-                cell.set_char(character);
+                fg.map(|fg| cell.set_fg(fg).set_char(character));
             };
         }
     }
@@ -102,19 +98,19 @@ impl Widget for &mut RatatuiCameraWidgetHalf<'_> {
 fn convert_image_to_cell_candidates(
     camera_image: &DynamicImage,
     strategy_config: &HalfBlocksConfig,
-) -> impl Iterator<Item = (Color, Color)> {
+) -> impl Iterator<Item = (Option<Color>, Option<Color>)> {
     let rgba_quads = convert_image_to_rgba_quads(camera_image);
 
     rgba_quads.into_iter().map(move |rgbas| {
         let bg = if strategy_config.transparent && rgbas[0][3] == 0 {
-            Color::Reset
+            None
         } else {
-            Color::Rgb(rgbas[0][0], rgbas[0][1], rgbas[0][2])
+            Some(Color::Rgb(rgbas[0][0], rgbas[0][1], rgbas[0][2]))
         };
         let fg = if strategy_config.transparent && rgbas[1][3] == 0 {
-            Color::Reset
+            None
         } else {
-            Color::Rgb(rgbas[1][0], rgbas[1][1], rgbas[1][2])
+            Some(Color::Rgb(rgbas[1][0], rgbas[1][1], rgbas[1][2]))
         };
 
         (bg, fg)

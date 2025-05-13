@@ -18,7 +18,7 @@ use crate::{
 /// # use bevy::prelude::*;
 /// # use bevy::log::LogPlugin;
 /// # use bevy_ratatui::RatatuiPlugins;
-/// # use bevy_ratatui::terminal::RatatuiContext;
+/// # use bevy_ratatui::RatatuiContext;
 /// # use bevy_ratatui_camera::{RatatuiCamera, RatatuiCameraPlugin, RatatuiCameraWidget};
 /// # use ratatui::prelude::Widget;
 /// #

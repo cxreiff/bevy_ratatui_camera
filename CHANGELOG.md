@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.13.0...v0.14.0) - 2025-05-13
+
+### Other
+
+- workflows fixed
+- bevy_ratatui version 0.9.0 bump
+- expanded `bg_color_scale` to custom color system
+- refactored depth detection to have less side effects
+- depth recording and widget occlusion example
+- successful depth readback and parsing, unutilized
+- extend text_labels example to show cell_to_ndc
+- cell-ndc conversion math and ergonomics fixes
+- refactored some area calculations, overlay widgets
+- reworked resizing to use Widget trait render
+
 ## [0.13.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.12.0...v0.13.0) - 2025-04-27
 
 ### Other

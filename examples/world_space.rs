@@ -8,10 +8,10 @@ use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
 use bevy::winit::WinitPlugin;
+use bevy_ratatui::RatatuiContext;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::event::MouseEvent;
 use bevy_ratatui::kitty::KittyEnabled;
-use bevy_ratatui::terminal::RatatuiContext;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraDepthBuffer;
 use bevy_ratatui_camera::RatatuiCameraDepthDetection;
@@ -54,10 +54,16 @@ fn main() {
         .init_resource::<shared::InputState>()
         .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, (setup_scene_system, setup_labels_system).chain())
-        .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
-        .add_systems(Update, shared::rotate_spinners_system)
-        .add_systems(Update, (sphere_movement_system, mouse_follow_system))
+        .add_systems(
+            Update,
+            (
+                shared::rotate_spinners_system,
+                draw_scene_system,
+                sphere_movement_system,
+                mouse_follow_system,
+            ),
+        )
         .run();
 }
 

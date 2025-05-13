@@ -1023,9 +1023,9 @@ checksum = "86f1275dfb4cfef4ffc90c3fa75408964864facf833acc932413d52aa5364ba4"
 
 [[package]]
 name = "bevy_ratatui"
-version = "0.8.3"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c9564de645cbefba35322735dcdb4947339f1be15b6c0089829f372af25c72"
+checksum = "f68a69df106af52b09b4de1023df457c67371c77f419676e5ebc69ae5f5808ad"
 dependencies = [
  "bevy",
  "bitflags 2.9.0",
@@ -1033,6 +1033,7 @@ dependencies = [
  "crossterm 0.29.0",
  "ratatui",
  "smol_str",
+ "soft_ratatui",
  "tracing",
 ]
 
@@ -1276,7 +1277,7 @@ dependencies = [
  "bevy_transform",
  "bevy_utils",
  "bevy_window",
- "cosmic-text",
+ "cosmic-text 0.13.2",
  "serde",
  "smallvec",
  "sys-locale",
@@ -1890,6 +1891,29 @@ name = "cosmic-text"
 version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e418dd4f5128c3e93eab12246391c54a20c496811131f85754dc8152ee207892"
+dependencies = [
+ "bitflags 2.9.0",
+ "fontdb",
+ "log",
+ "rangemap",
+ "rustc-hash",
+ "rustybuzz",
+ "self_cell",
+ "smol_str",
+ "swash",
+ "sys-locale",
+ "ttf-parser 0.21.1",
+ "unicode-bidi",
+ "unicode-linebreak",
+ "unicode-script",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "cosmic-text"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da46a9d5a8905cc538a4a5bceb6a4510de7a51049c5588c0114efce102bcbbe8"
 dependencies = [
  "bitflags 2.9.0",
  "fontdb",
@@ -4561,6 +4585,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd538fb6910ac1099850255cf94a94df6551fbdd602454387d0adb2d1ca6dead"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "soft_ratatui"
+version = "0.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6f86103b6d0ae58ba8be0939008b32d919ba6f504e7c46a14254dbe33452de8"
+dependencies = [
+ "cosmic-text 0.14.2",
+ "ratatui",
 ]
 
 [[package]]

@@ -160,18 +160,41 @@ visible even if the character is standing behind a wall).
 By recording a "closest depth" associated with each terminal buffer cell, and
 skipping draws when the new cell to be drawn has a more distant depth than the
 depth already recorded, you can achieve depth occlusion even when mixing
-multiple kinds of widgets that draw separately. For this purpose,
-`RatatuiCameraWidget` contains a `new_depth_buffer()` function that gives you
-a `RatatuiCameraDepthBuffer` that you can pass into camera widget render calls
-(or other depth-aware widget render calls) to compare against and update while
-drawing.
+multiple kinds of widgets that draw separately. This library contains a couple
+of utilities for this purpose.
+
+First, add `RatatuiCameraDepthDetection` to your ratatui camera entity, and the depth
+prepass will be copied back from the GPU alongside your camera's render image:
 
 ```rust
+// setup system
+commands.spawn((
+    RatatuiCamera::default(),
+    RatatuiCameraDepthDetection,
+));
+```
+
+Then, when drawing, use `RatatuiCameraWidget::new_depth_buffer()` to initialize
+a `RatatuiCameraDepthBuffer` that you can pass into camera widget render calls
+(or other depth-aware widget render calls) to compare depths against and update
+while drawing:
+
+```rust
+// draw system
 let depth_buffer = &mut widget.new_depth_buffer(area);
 
 widget.render(area, frame.buffer_mut(), depth_buffer);
 
 widget.render_overlay_with_depth(area, frame.buffer_mut(), &custom_widget, depth_buffer);
+```
+
+To achieve this, `RatatuiCameraWidget` implements both ratatui's `Widget` and
+`StatefulWidget` traits, using the stateful version for the depth-aware
+rendering. Because of this, if you have both traits imported, you may need to
+resolve ambiguous trait resolution with fully qualified syntax:
+
+```rust
+<widget as StatefulWidget>::render(...);
 ```
 
 ## multiple cameras

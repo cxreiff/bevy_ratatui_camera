@@ -1039,7 +1039,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_ratatui_camera"
-version = "0.13.0"
+version = "0.14.0"
 dependencies = [
  "bevy",
  "bevy_ratatui",

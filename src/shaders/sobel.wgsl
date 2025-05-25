@@ -12,6 +12,11 @@ struct Config {
 
     normal_enabled: u32,
     normal_threshold: f32,
+
+    #ifdef SIXTEEN_BYTE_ALIGNMENT
+    // pad to 32 bytes when structs must be 16 byte aligned
+    _padding: u32,
+    #endif
 };
 
 @group(0) @binding(0) var screen_texture: texture_2d<f32>;
@@ -110,7 +115,11 @@ fn detect_edge_vec3(samples: ptr<function, array<vec3f, 9>>) -> vec4f {
 }
 
 fn prepass_depth(frag_coord: vec2f) -> f32 {
+    #ifdef DEPTH_TEXTURE_SAMPLING_SUPPORTED
     return textureLoad(depth_prepass_texture, vec2i(frag_coord), 0);
+    #else
+    return 0.0;
+    #endif
 }
 
 fn prepass_normal(frag_coord: vec2f) -> vec3f {

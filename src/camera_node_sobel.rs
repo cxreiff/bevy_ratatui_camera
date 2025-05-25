@@ -3,7 +3,10 @@ use std::path::Path;
 use bevy::{
     asset::{AssetPath, embedded_asset, io::AssetSourceId},
     core_pipeline::{
-        core_3d::graph::{Core3d, Node3d},
+        core_3d::{
+            DEPTH_TEXTURE_SAMPLING_SUPPORTED,
+            graph::{Core3d, Node3d},
+        },
         fullscreen_vertex_shader::fullscreen_shader_vertex_state,
         prepass::ViewPrepassTextures,
     },
@@ -243,13 +246,19 @@ impl FromWorld for RatatuiCameraNodeSobelPipeline {
 
         let pipeline_cache = world.resource_mut::<PipelineCache>();
 
+        let mut shader_defs = Vec::new();
+
+        if DEPTH_TEXTURE_SAMPLING_SUPPORTED {
+            shader_defs.push("DEPTH_TEXTURE_SAMPLING_SUPPORTED".into());
+        }
+
         let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
             label: Some("ratatui_camera_node_sobel_pipeline".into()),
             layout: vec![layout.clone()],
             vertex: fullscreen_shader_vertex_state(),
             fragment: Some(FragmentState {
                 shader: shader_handle,
-                shader_defs: vec![],
+                shader_defs,
                 entry_point: "fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),

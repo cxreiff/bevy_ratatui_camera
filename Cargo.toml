@@ -12,17 +12,19 @@ keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 
 [dependencies]
 bevy = "0.16.0"
-crossterm = "0.29.0"
 crossbeam-channel = "0.5.15"
-ratatui = "0.29.0"
-bevy_ratatui = "0.9.0"
+ratatui = { version = "0.29.0", default-features = false, features = ["unstable-widget-ref"] }
 image = "0.25.6"
 log = "0.4.27"
 
 [dev-dependencies]
+crossterm = "0.29.0"
+bevy_ratatui = "0.9.0"
 tui-logger = "0.17.2"
 
 [features]
+default = ["crossterm"]
+crossterm = ["ratatui/crossterm"]
 windowed = ["bevy_ratatui/windowed"]
 
 [profile.dev]

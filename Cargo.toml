@@ -23,8 +23,6 @@ bevy_ratatui = "0.9.0"
 tui-logger = "0.17.2"
 
 [features]
-default = ["crossterm"]
-crossterm = ["ratatui/crossterm"]
 windowed = ["bevy_ratatui/windowed"]
 
 [profile.dev]

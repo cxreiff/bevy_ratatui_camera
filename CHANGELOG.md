@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.14.2...v0.15.0) - 2025-05-31
+
+### Other
+
+- new depth strategy, refactored strategy config
+
 ## [0.14.2](https://github.com/cxreiff/bevy_ratatui_camera/compare/v0.14.1...v0.14.2) - 2025-05-26
 
 ### Other

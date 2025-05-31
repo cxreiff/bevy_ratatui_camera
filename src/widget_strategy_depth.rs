@@ -1,30 +1,30 @@
-use bevy::color::Luminance;
 use image::{DynamicImage, GenericImageView};
 use ratatui::prelude::*;
 
+use crate::camera_strategy::DepthConfig;
 use crate::color_support::color_for_color_support;
 use crate::widget_utilities::{
     average_in_rgba, colors_for_color_choices, coords_from_index, replace_detected_edges,
 };
-use crate::{LuminanceConfig, RatatuiCameraDepthBuffer, RatatuiCameraEdgeDetection};
+use crate::{RatatuiCameraDepthBuffer, RatatuiCameraEdgeDetection};
 
 #[derive(Debug)]
-pub struct RatatuiCameraWidgetLuminance<'a> {
+pub struct RatatuiCameraWidgetDepth<'a> {
     camera_image: DynamicImage,
     depth_image: Option<DynamicImage>,
     sobel_image: Option<DynamicImage>,
     depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
-    strategy_config: &'a LuminanceConfig,
+    strategy_config: &'a DepthConfig,
     edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
 }
 
-impl<'a> RatatuiCameraWidgetLuminance<'a> {
+impl<'a> RatatuiCameraWidgetDepth<'a> {
     pub fn new(
         camera_image: DynamicImage,
         depth_image: Option<DynamicImage>,
         sobel_image: Option<DynamicImage>,
         depth_buffer: Option<&'a mut RatatuiCameraDepthBuffer>,
-        strategy_config: &'a LuminanceConfig,
+        strategy_config: &'a DepthConfig,
         edge_detection: &'a Option<RatatuiCameraEdgeDetection>,
     ) -> Self {
         Self {
@@ -38,10 +38,15 @@ impl<'a> RatatuiCameraWidgetLuminance<'a> {
     }
 }
 
-impl Widget for &mut RatatuiCameraWidgetLuminance<'_> {
+impl Widget for &mut RatatuiCameraWidgetDepth<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let Some(ref depth_image) = self.depth_image else {
+            return;
+        };
+
         let cell_candidates = convert_image_to_cell_candidates(
             &self.camera_image,
+            depth_image,
             &self.strategy_config.characters.list,
             self.strategy_config.characters.scale,
         );
@@ -110,15 +115,15 @@ impl Widget for &mut RatatuiCameraWidgetLuminance<'_> {
 
 fn convert_image_to_cell_candidates(
     camera_image: &DynamicImage,
-    luminance_characters: &[char],
-    luminance_scale: f32,
+    depth_image: &DynamicImage,
+    depth_characters: &[char],
+    depth_scale: f32,
 ) -> impl Iterator<Item = (char, Option<Color>)> {
-    let rgba_quads = convert_image_to_rgba_quads(camera_image);
+    let rgba_quads = convert_image_to_rgba_quads(camera_image, depth_image);
 
-    rgba_quads.into_iter().map(move |rgba| {
-        let character =
-            convert_rgba_quads_to_character(&rgba, luminance_characters, luminance_scale);
-        let color = if rgba[3] == 0 {
+    rgba_quads.into_iter().map(move |(rgba, depth)| {
+        let character = convert_depth_to_character(depth, depth_characters, depth_scale);
+        let color = if rgba[3] == 0 || depth == 0.0 {
             None
         } else {
             Some(Color::Rgb(rgba[0], rgba[1], rgba[2]))
@@ -127,37 +132,39 @@ fn convert_image_to_cell_candidates(
     })
 }
 
-fn convert_image_to_rgba_quads(camera_image: &DynamicImage) -> Vec<[u8; 4]> {
+fn convert_image_to_rgba_quads(
+    camera_image: &DynamicImage,
+    depth_image: &DynamicImage,
+) -> Vec<([u8; 4], f32)> {
     let mut rgba_quads =
-        vec![[0; 4]; (camera_image.width() * camera_image.height().div_ceil(2)) as usize];
+        vec![([0; 4], 0.0); (camera_image.width() * camera_image.height().div_ceil(2)) as usize];
 
-    for (y, row) in camera_image.to_rgba8().rows().enumerate() {
-        for (x, pixel) in row.enumerate() {
+    for ((y, row), depth_row) in camera_image
+        .to_rgba8()
+        .rows()
+        .enumerate()
+        .zip(depth_image.to_rgba8().rows())
+    {
+        for ((x, pixel), depth) in row.enumerate().zip(depth_row) {
             let position = x + (camera_image.width() as usize) * (y / 2);
             if y % 2 == 0 {
-                rgba_quads[position] = pixel.0;
+                rgba_quads[position].0 = pixel.0;
             } else {
-                rgba_quads[position] = average_in_rgba(&rgba_quads[position], pixel);
+                rgba_quads[position].0 = average_in_rgba(&rgba_quads[position].0, pixel);
             }
+            rgba_quads[position].1 = f32::from_le_bytes(depth.0);
         }
     }
 
     rgba_quads
 }
 
-fn convert_rgba_quads_to_character(
-    rgba_quad: &[u8; 4],
-    luminance_characters: &[char],
-    luminance_scale: f32,
-) -> char {
-    let luminance =
-        bevy::color::Color::srgba_u8(rgba_quad[0], rgba_quad[1], rgba_quad[2], rgba_quad[3])
-            .luminance();
-    let scaled_luminance = (luminance * luminance_scale).min(1.0);
-    let character_index = ((scaled_luminance * luminance_characters.len() as f32) as usize)
-        .min(luminance_characters.len() - 1);
+fn convert_depth_to_character(depth: f32, depth_characters: &[char], depth_scale: f32) -> char {
+    let scaled_depth = (depth * depth_scale).min(1.0);
+    let character_index =
+        ((scaled_depth * depth_characters.len() as f32) as usize).min(depth_characters.len() - 1);
 
-    let Some(character) = luminance_characters.get(character_index) else {
+    let Some(character) = depth_characters.get(character_index) else {
         return ' ';
     };
 

@@ -6,6 +6,7 @@ use ratatui::widgets::{StatefulWidgetRef, Widget};
 use ratatui::{prelude::*, widgets::WidgetRef};
 
 use crate::widget_depth_buffer::RatatuiCameraDepthBuffer;
+use crate::widget_strategy_depth::RatatuiCameraWidgetDepth;
 use crate::widget_strategy_halfblocks::RatatuiCameraWidgetHalf;
 use crate::widget_strategy_luminance::RatatuiCameraWidgetLuminance;
 use crate::widget_strategy_none::RatatuiCameraWidgetNone;
@@ -87,6 +88,17 @@ impl RatatuiCameraWidget {
         match self.strategy {
             RatatuiCameraStrategy::HalfBlocks(ref strategy_config) => {
                 RatatuiCameraWidgetHalf::new(
+                    camera_image,
+                    depth_image,
+                    sobel_image,
+                    depth_buffer,
+                    strategy_config,
+                    &self.edge_detection,
+                )
+                .render(render_area, buf);
+            }
+            RatatuiCameraStrategy::Depth(ref strategy_config) => {
+                RatatuiCameraWidgetDepth::new(
                     camera_image,
                     depth_image,
                     sobel_image,

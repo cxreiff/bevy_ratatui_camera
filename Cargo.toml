@@ -11,7 +11,7 @@ categories = ["game-engines", "gui", "rendering", "command-line-interface"]
 keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 
 [dependencies]
-bevy = "0.16.0"
+bevy = "0.16.1"
 crossbeam-channel = "0.5.15"
 ratatui = { version = "0.29.0", default-features = false, features = ["unstable-widget-ref"] }
 image = "0.25.6"

@@ -14,6 +14,7 @@ mod plugin;
 mod widget;
 mod widget_depth_buffer;
 mod widget_math;
+mod widget_strategy_depth;
 mod widget_strategy_halfblocks;
 mod widget_strategy_luminance;
 mod widget_strategy_none;
@@ -24,7 +25,10 @@ pub use camera::{
     RatatuiSubcamera, RatatuiSubcameras,
 };
 pub use camera_edge_detection::{EdgeCharacters, RatatuiCameraEdgeDetection};
-pub use camera_strategy::{ColorChoice, HalfBlocksConfig, LuminanceConfig, RatatuiCameraStrategy};
+pub use camera_strategy::{
+    CharactersConfig, ColorChoice, ColorsConfig, CommonConfig, DepthConfig, HalfBlocksConfig,
+    LuminanceConfig, RatatuiCameraStrategy,
+};
 pub use color_support::ColorSupport;
 pub use plugin::RatatuiCameraPlugin;
 pub use widget::RatatuiCameraWidget;

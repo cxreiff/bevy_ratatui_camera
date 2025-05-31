@@ -169,7 +169,7 @@ fn modify_ratatui_camera_strategy(mut ratatui_camera_strategy: Single<&mut Ratat
         return;
     };
 
-    luminance_config.luminance_characters = vec!['.', 'o', 'O', '0'];
+    luminance_config.characters.list = vec!['.', 'o', 'O', '0'];
 }
 
 fn toggle_ratatui_camera_strategy(
@@ -185,5 +185,6 @@ fn toggle_ratatui_camera_strategy(
             RatatuiCameraStrategy::HalfBlocks(HalfBlocksConfig::default())
         }
         RatatuiCameraStrategy::None => RatatuiCameraStrategy::None,
+        RatatuiCameraStrategy::Depth(_) => RatatuiCameraStrategy::None,
     });
 }

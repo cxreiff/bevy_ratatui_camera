@@ -5,7 +5,9 @@ use crate::RatatuiCameraEdgeDetection;
 use crate::camera_strategy::HalfBlocksConfig;
 use crate::color_support::color_for_color_support;
 use crate::widget_depth_buffer::RatatuiCameraDepthBuffer;
-use crate::widget_utilities::{coords_from_index, replace_detected_edges};
+use crate::widget_utilities::{
+    colors_for_color_choices, coords_from_index, replace_detected_edges,
+};
 
 #[derive(Debug)]
 pub struct RatatuiCameraWidgetHalf<'a> {
@@ -82,13 +84,20 @@ impl Widget for &mut RatatuiCameraWidgetHalf<'_> {
                     replace_detected_edges(character, fg, &sobel_value, edge_detection);
             };
 
+            (fg, bg) = colors_for_color_choices(
+                fg,
+                bg,
+                &self.strategy_config.colors.foreground,
+                &self.strategy_config.colors.background,
+            );
+
             if draw_bg {
-                bg = color_for_color_support(bg, self.strategy_config.color_support);
+                bg = color_for_color_support(bg, self.strategy_config.colors.support);
                 bg.map(|bg| cell.set_bg(bg));
             };
 
             if draw_fg {
-                fg = color_for_color_support(fg, self.strategy_config.color_support);
+                fg = color_for_color_support(fg, self.strategy_config.colors.support);
                 fg.map(|fg| cell.set_fg(fg).set_char(character));
             };
         }
@@ -102,12 +111,12 @@ fn convert_image_to_cell_candidates(
     let rgba_quads = convert_image_to_rgba_quads(camera_image);
 
     rgba_quads.into_iter().map(move |rgbas| {
-        let bg = if strategy_config.transparent && rgbas[0][3] == 0 {
+        let bg = if strategy_config.common.transparent && rgbas[0][3] == 0 {
             None
         } else {
             Some(Color::Rgb(rgbas[0][0], rgbas[0][1], rgbas[0][2]))
         };
-        let fg = if strategy_config.transparent && rgbas[1][3] == 0 {
+        let fg = if strategy_config.common.transparent && rgbas[1][3] == 0 {
             None
         } else {
             Some(Color::Rgb(rgbas[1][0], rgbas[1][1], rgbas[1][2]))

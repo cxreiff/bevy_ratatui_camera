@@ -18,9 +18,32 @@ pub enum RatatuiCameraStrategy {
     /// luminance to select a character from the range.
     Luminance(LuminanceConfig),
 
+    /// Given a range of unicode characters sorted in increasing order of opacity, use each pixel's
+    /// depth to select a character from the range.
+    ///
+    /// NOTE: The [RatatuiCameraDepthDetection](crate::RatatuiCameraDepthDetection) component is
+    /// required on the same camera entity for this strategy to function, as it relies on the depth
+    /// texture.
+    Depth(DepthConfig),
+
     /// Does not print characters by itself, but edge detection will still print. Use with edge
     /// detection for a "wireframe".
     None,
+}
+
+impl RatatuiCameraStrategy {
+    /// A range of braille unicode characters in increasing order of opacity.
+    pub const CHARACTERS_BRAILLE: &'static [char] = &[' ', '⠂', '⠒', '⠖', '⠶', '⠷', '⠿', '⡿', '⣿'];
+
+    /// A range of miscellaneous characters in increasing order of opacity.
+    pub const CHARACTERS_MISC: &'static [char] =
+        &[' ', '.', ':', '+', '=', '!', '*', '?', '#', '%', '&', '@'];
+
+    /// A range of block characters in increasing order of opacity.
+    pub const CHARACTERS_SHADING: &'static [char] = &[' ', '░', '▒', '▓', '█'];
+
+    /// A range of block characters in increasing order of size.
+    pub const CHARACTERS_BLOCKS: &'static [char] = &[' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 }
 
 impl Default for RatatuiCameraStrategy {
@@ -36,10 +59,68 @@ impl RatatuiCameraStrategy {
         Self::HalfBlocks(HalfBlocksConfig::default())
     }
 
+    /// Depth strategy with a provided list of characters.
+    pub fn depth_with_characters(characters: &[char]) -> Self {
+        Self::Depth(DepthConfig {
+            characters: CharactersConfig {
+                list: characters.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            ..default()
+        })
+    }
+
+    /// Depth strategy with a range of braille unicode characters in increasing order of opacity.
+    pub fn depth_braille() -> Self {
+        Self::Depth(DepthConfig {
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_BRAILLE.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            ..default()
+        })
+    }
+
+    /// Depth strategy with a range of miscellaneous characters in increasing order of opacity.
+    pub fn depth_misc() -> Self {
+        Self::Depth(DepthConfig {
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_MISC.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            ..default()
+        })
+    }
+
+    /// Depth strategy with a range of block characters in increasing order of opacity.
+    pub fn depth_shading() -> Self {
+        Self::Depth(DepthConfig {
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_SHADING.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            ..default()
+        })
+    }
+
+    /// Depth strategy with a range of block characters in increasing order of size.
+    pub fn depth_blocks() -> Self {
+        Self::Depth(DepthConfig {
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_BLOCKS.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            ..default()
+        })
+    }
+
     /// Luminance strategy with a provided list of characters.
     pub fn luminance_with_characters(characters: &[char]) -> Self {
         Self::Luminance(LuminanceConfig {
-            luminance_characters: characters.into(),
+            characters: CharactersConfig {
+                list: characters.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
             ..default()
         })
     }
@@ -47,7 +128,10 @@ impl RatatuiCameraStrategy {
     /// Luminance strategy with a range of braille unicode characters in increasing order of opacity.
     pub fn luminance_braille() -> Self {
         Self::Luminance(LuminanceConfig {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_BRAILLE.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
             ..default()
         })
     }
@@ -55,7 +139,10 @@ impl RatatuiCameraStrategy {
     /// Luminance strategy with a range of miscellaneous characters in increasing order of opacity.
     pub fn luminance_misc() -> Self {
         Self::Luminance(LuminanceConfig {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_MISC.into(),
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_MISC.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
             ..default()
         })
     }
@@ -63,7 +150,10 @@ impl RatatuiCameraStrategy {
     /// Luminance strategy with a range of block characters in increasing order of opacity.
     pub fn luminance_shading() -> Self {
         Self::Luminance(LuminanceConfig {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_SHADING.into(),
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_SHADING.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
             ..default()
         })
     }
@@ -71,7 +161,10 @@ impl RatatuiCameraStrategy {
     /// Luminance strategy with a range of block characters in increasing order of size.
     pub fn luminance_blocks() -> Self {
         Self::Luminance(LuminanceConfig {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BLOCKS.into(),
+            characters: CharactersConfig {
+                list: Self::CHARACTERS_BLOCKS.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
             ..default()
         })
     }
@@ -81,19 +174,118 @@ impl RatatuiCameraStrategy {
 ///
 /// # Example:
 ///
-/// The following would configure the widget to skip transparent pixels.
+/// The following would configure the widget to use ANSI colors.
 ///
 /// ```no_run
 /// # use bevy::prelude::*;
 /// # use bevy_ratatui_camera::{
-/// #   RatatuiCamera, RatatuiCameraStrategy, HalfBlocksConfig
+/// #   RatatuiCamera, RatatuiCameraStrategy, HalfBlocksConfig, ColorsConfig, ColorSupport
 /// # };
 /// #
 /// # fn setup_scene_system(mut commands: Commands) {
 /// # commands.spawn((
 /// #     RatatuiCamera::default(),
 ///     RatatuiCameraStrategy::HalfBlocks(HalfBlocksConfig {
-///         transparent: true,
+///         colors: ColorsConfig {
+///             support: ColorSupport::ANSI16,
+///             ..default()
+///         },
+///         ..default()
+///     }),
+/// # ));
+/// # };
+/// ```
+///
+#[derive(Clone, Debug, Default)]
+pub struct HalfBlocksConfig {
+    /// Configuration options common to all strategies.
+    pub common: CommonConfig,
+
+    /// Configuration for determining the resulting colors.
+    pub colors: ColorsConfig,
+}
+
+/// Configuration for the RatatuiCameraStrategy::Depth terminal rendering strategy.
+///
+/// NOTE: The [RatatuiCameraDepthDetection](crate::RatatuiCameraDepthDetection) component is
+/// required on the same camera entity for this strategy to function, as it relies on the depth
+/// texture.
+///
+/// # Example:
+///
+/// The following configures the widget to use '@' for close surfaces and '+' for more distant
+/// surfaces.
+///
+/// ```no_run
+/// # use bevy::prelude::*;
+/// # use bevy_ratatui_camera::{
+/// #   RatatuiCamera, RatatuiCameraStrategy, DepthConfig, CharactersConfig
+/// # };
+/// #
+/// # fn setup_scene_system(mut commands: Commands) {
+/// # commands.spawn((
+/// #     RatatuiCamera::default(),
+///     RatatuiCameraStrategy::Depth(DepthConfig {
+///         characters: CharactersConfig {
+///             list: vec![' ', '+', '@'],
+///             scale: DepthConfig::SCALE_DEFAULT,
+///         },
+///         ..default()
+///     }),
+/// # ));
+/// # };
+/// ```
+#[derive(Clone, Debug)]
+pub struct DepthConfig {
+    /// Configuration options common to all strategies.
+    pub common: CommonConfig,
+
+    /// Configuration for determining the resulting characters.
+    pub characters: CharactersConfig,
+
+    /// Configuration for determining the resulting colors.
+    pub colors: ColorsConfig,
+}
+
+impl DepthConfig {
+    /// The default scaling value to multiply pixel depth by.
+    pub const SCALE_DEFAULT: f32 = 30.;
+}
+
+impl Default for DepthConfig {
+    fn default() -> Self {
+        Self {
+            common: CommonConfig::default(),
+            characters: CharactersConfig {
+                list: RatatuiCameraStrategy::CHARACTERS_MISC.into(),
+                scale: DepthConfig::SCALE_DEFAULT,
+            },
+            colors: ColorsConfig::default(),
+        }
+    }
+}
+
+/// Configuration for the RatatuiCameraStrategy::Luminance terminal rendering strategy.
+///
+/// # Example:
+///
+/// The following configures the widget to multiply each pixel's luminance value by 5.0, and use
+/// ' ' and '.' for dimmer areas, use '+' and '#' for brighter areas.
+///
+/// ```no_run
+/// # use bevy::prelude::*;
+/// # use bevy_ratatui_camera::{
+/// #   RatatuiCamera, RatatuiCameraStrategy, LuminanceConfig, CharactersConfig
+/// # };
+/// #
+/// # fn setup_scene_system(mut commands: Commands) {
+/// # commands.spawn((
+/// #     RatatuiCamera::default(),
+///     RatatuiCameraStrategy::Luminance(LuminanceConfig {
+///         characters: CharactersConfig {
+///             list: vec![' ', '.', '+', '#'],
+///             scale: 5.0,
+///         },
 ///         ..default()
 ///     }),
 /// # ));
@@ -101,7 +293,38 @@ impl RatatuiCameraStrategy {
 /// ```
 ///
 #[derive(Clone, Debug)]
-pub struct HalfBlocksConfig {
+pub struct LuminanceConfig {
+    /// Configuration options common to all strategies.
+    pub common: CommonConfig,
+
+    /// Configuration for determining the resulting characters.
+    pub characters: CharactersConfig,
+
+    /// Configuration for determining the resulting colors.
+    pub colors: ColorsConfig,
+}
+
+impl LuminanceConfig {
+    /// The default scaling value to multiply pixel luminance by.
+    pub const SCALE_DEFAULT: f32 = 10.;
+}
+
+impl Default for LuminanceConfig {
+    fn default() -> Self {
+        Self {
+            common: CommonConfig::default(),
+            characters: CharactersConfig {
+                list: RatatuiCameraStrategy::CHARACTERS_MISC.into(),
+                scale: LuminanceConfig::SCALE_DEFAULT,
+            },
+            colors: ColorsConfig::default(),
+        }
+    }
+}
+
+/// General configuration not specific to particular strategies.
+#[derive(Clone, Debug)]
+pub struct CommonConfig {
     /// If the alpha value of a rendered pixel is zero, skip writing that character to the ratatui
     /// buffer. Useful for compositing camera images together.
     ///
@@ -114,6 +337,38 @@ pub struct HalfBlocksConfig {
     /// transparent camera entity. Only fully transparent pixels will be skipped. See the
     /// `transparency` example for more detail.
     pub transparent: bool,
+}
+
+impl Default for CommonConfig {
+    fn default() -> Self {
+        Self { transparent: true }
+    }
+}
+
+/// Configuration pertaining to character selection, based on criteria determined by the strategy.
+#[derive(Clone, Debug)]
+pub struct CharactersConfig {
+    /// The list of characters, in increasing order of opacity, to use for printing. For example,
+    /// put an '@' symbol after a '+' symbol because it is more "opaque", taking up more space in
+    /// the cell it is printed in, and so when printed in bright text on a dark background, it
+    /// appears to be "brighter".
+    pub list: Vec<char>,
+
+    /// The number that each value used for character selection is multiplied by before being used
+    /// to select a character. This is useful because many combinations of scenes and character
+    /// selection metrics will not occupy the full range between 0.0 and 1.0, and so each luminance
+    /// value can be multiplied by a scaling value first to tune the character selection.
+    pub scale: f32,
+}
+
+/// Configuration pertaining to color selection.
+#[derive(Clone, Debug, Default)]
+pub struct ColorsConfig {
+    /// If present, customizes how the foreground color should be chosen per character.
+    pub foreground: Option<ColorChoice>,
+
+    /// If present, customizes how the background color should be chosen per character.
+    pub background: Option<ColorChoice>,
 
     /// The sets of terminal colors to convert to. Many terminals support 24-bit RGB "true color",
     /// but some only support pre-defined sets of 16 or 256 ANSI colors. By default the `RGB` enum
@@ -130,101 +385,7 @@ pub struct HalfBlocksConfig {
     ///
     /// Reference for terminal color support:
     /// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-    pub color_support: ColorSupport,
-}
-
-impl Default for HalfBlocksConfig {
-    fn default() -> Self {
-        Self {
-            transparent: true,
-            color_support: ColorSupport::TrueColor,
-        }
-    }
-}
-
-/// Configuration for the RatatuiCameraStrategy::Luminance terminal rendering strategy.
-///
-/// # Example:
-///
-/// The following would configure the widget to multiply each pixel's luminance value by 5.0, use
-/// ' ' and '.' for dimmer areas, use '+' and '#' for brighter areas, and skip transparent pixels.
-///
-/// ```no_run
-/// # use bevy::prelude::*;
-/// # use bevy_ratatui_camera::{
-/// #   RatatuiCamera, RatatuiCameraStrategy, LuminanceConfig
-/// # };
-/// #
-/// # fn setup_scene_system(mut commands: Commands) {
-/// # commands.spawn((
-/// #     RatatuiCamera::default(),
-///     RatatuiCameraStrategy::Luminance(LuminanceConfig {
-///         luminance_characters: vec![' ', '.', '+', '#'],
-///         luminance_scale: 5.0,
-///         transparent: true,
-///         ..default()
-///     }),
-/// # ));
-/// # };
-/// ```
-///
-#[derive(Clone, Debug)]
-pub struct LuminanceConfig {
-    /// The list of characters, in increasing order of opacity, to use for printing. For example,
-    /// put an '@' symbol after a '+' symbol because it is more "opaque", taking up more space in
-    /// the cell it is printed in, and so when printed in bright text on a dark background, it
-    /// appears to be "brighter".
-    pub luminance_characters: Vec<char>,
-
-    /// The number that each luminance value is multiplied by before being used to select
-    /// a character. Because most scenes do not occupy the full range of luminance between 0.0 and
-    /// 1.0, each luminance value is multiplied by a scaling value first.
-    pub luminance_scale: f32,
-
-    /// If present, customizes how the foreground color should be chosen per character.
-    pub foreground_color: Option<ColorChoice>,
-
-    /// If present, customizes how the background color should be chosen per character.
-    pub background_color: Option<ColorChoice>,
-
-    /// Please refer to the same field in [HalfBlocksConfig].
-    pub transparent: bool,
-
-    /// Please refer to the same field in [HalfBlocksConfig].
-    pub color_support: ColorSupport,
-}
-
-impl LuminanceConfig {
-    /// A range of braille unicode characters in increasing order of opacity.
-    pub const LUMINANCE_CHARACTERS_BRAILLE: &'static [char] =
-        &[' ', '⠂', '⠒', '⠖', '⠶', '⠷', '⠿', '⡿', '⣿'];
-
-    /// A range of miscellaneous characters in increasing order of opacity.
-    pub const LUMINANCE_CHARACTERS_MISC: &'static [char] =
-        &[' ', '.', ':', '+', '=', '!', '*', '?', '#', '%', '&', '@'];
-
-    /// A range of block characters in increasing order of opacity.
-    pub const LUMINANCE_CHARACTERS_SHADING: &'static [char] = &[' ', '░', '▒', '▓', '█'];
-
-    /// A range of block characters in increasing order of size.
-    pub const LUMINANCE_CHARACTERS_BLOCKS: &'static [char] =
-        &[' ', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
-
-    /// The default scaling value to multiply pixel luminance by.
-    const LUMINANCE_SCALE_DEFAULT: f32 = 10.;
-}
-
-impl Default for LuminanceConfig {
-    fn default() -> Self {
-        Self {
-            luminance_characters: LuminanceConfig::LUMINANCE_CHARACTERS_BRAILLE.into(),
-            luminance_scale: LuminanceConfig::LUMINANCE_SCALE_DEFAULT,
-            foreground_color: None,
-            background_color: None,
-            transparent: true,
-            color_support: ColorSupport::TrueColor,
-        }
-    }
+    pub support: ColorSupport,
 }
 
 /// Options for customizing a terminal buffer color (foreground or background). Customization

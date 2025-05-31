@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::app::ScheduleRunnerPlugin;
+use bevy::color::Color;
 use bevy::diagnostic::DiagnosticsStore;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::log::LogPlugin;
@@ -9,18 +10,12 @@ use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiContext;
 use bevy_ratatui::RatatuiPlugins;
 use bevy_ratatui::kitty::KittyEnabled;
-use bevy_ratatui_camera::CharactersConfig;
-use bevy_ratatui_camera::ColorChoice;
-use bevy_ratatui_camera::ColorsConfig;
-use bevy_ratatui_camera::LuminanceConfig;
 use bevy_ratatui_camera::RatatuiCamera;
+use bevy_ratatui_camera::RatatuiCameraDepthDetection;
 use bevy_ratatui_camera::RatatuiCameraPlugin;
 use bevy_ratatui_camera::RatatuiCameraStrategy;
 use bevy_ratatui_camera::RatatuiCameraWidget;
 use log::LevelFilter;
-use ratatui::layout::Constraint;
-use ratatui::layout::Direction;
-use ratatui::layout::Layout;
 use ratatui::widgets::Widget;
 
 mod shared;
@@ -31,7 +26,7 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins
-                .set(ImagePlugin::default_nearest())
+                .build()
                 .disable::<WinitPlugin>()
                 .disable::<LogPlugin>(),
             ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(1. / 60.)),
@@ -44,7 +39,7 @@ fn main() {
         ))
         .init_resource::<shared::Flags>()
         .init_resource::<shared::InputState>()
-        .insert_resource(ClearColor(Color::srgba(0., 0., 0., 0.)))
+        .insert_resource(ClearColor(Color::BLACK))
         .add_systems(Startup, setup_scene_system)
         .add_systems(Update, draw_scene_system)
         .add_systems(PreUpdate, shared::handle_input_system)
@@ -61,37 +56,16 @@ fn setup_scene_system(
 
     commands.spawn((
         RatatuiCamera::default(),
-        RatatuiCameraStrategy::luminance_with_characters(&[' ', '-', '+', '=', '#']),
+        RatatuiCameraStrategy::depth_braille(),
+        RatatuiCameraDepthDetection,
         Camera3d::default(),
-        Transform::from_xyz(0., 3., 0.).looking_at(Vec3::ZERO, Vec3::Z),
-    ));
-    commands.spawn((
-        RatatuiCamera::default(),
-        RatatuiCameraStrategy::Luminance(LuminanceConfig {
-            characters: CharactersConfig {
-                list: RatatuiCameraStrategy::CHARACTERS_BRAILLE.into(),
-                scale: LuminanceConfig::SCALE_DEFAULT,
-            },
-            colors: ColorsConfig {
-                background: Some(ColorChoice::Scale(0.3)),
-                ..default()
-            },
-            ..default()
-        }),
-        Camera3d::default(),
-        Transform::from_xyz(0., 0., 3.).looking_at(Vec3::ZERO, Vec3::Z),
-    ));
-    commands.spawn((
-        RatatuiCamera::default(),
-        RatatuiCameraStrategy::luminance_with_characters(&[' ', '.', 'o', 'O', '0']),
-        Camera3d::default(),
-        Transform::from_xyz(2., 2., 2.).looking_at(Vec3::ZERO, Vec3::Z),
+        Transform::from_xyz(2.5, 2.5, 2.5).looking_at(Vec3::ZERO, Vec3::Z),
     ));
 }
 
 fn draw_scene_system(
     mut ratatui: ResMut<RatatuiContext>,
-    mut camera_widgets: Query<&mut RatatuiCameraWidget>,
+    mut camera_widget: Single<&mut RatatuiCameraWidget>,
     flags: Res<shared::Flags>,
     diagnostics: Res<DiagnosticsStore>,
     kitty_enabled: Option<Res<KittyEnabled>>,
@@ -99,17 +73,7 @@ fn draw_scene_system(
     ratatui.draw(|frame| {
         let area = shared::debug_frame(frame, &flags, &diagnostics, kitty_enabled.as_deref());
 
-        let widgets = camera_widgets.iter_mut().enumerate().collect::<Vec<_>>();
-
-        let layout = Layout::new(
-            Direction::Horizontal,
-            vec![Constraint::Fill(1); widgets.len()],
-        )
-        .split(area);
-
-        for (i, mut widget) in widgets {
-            widget.render(layout[i], frame.buffer_mut());
-        }
+        camera_widget.render(area, frame.buffer_mut());
     })?;
 
     Ok(())

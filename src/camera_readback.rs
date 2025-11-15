@@ -1,9 +1,9 @@
 use bevy::{
+    camera::RenderTarget,
     core_pipeline::prepass::{DepthPrepass, NormalPrepass},
     prelude::*,
     render::{
-        Render, RenderApp, RenderSet,
-        camera::RenderTarget,
+        Render, RenderApp, RenderSystems,
         extract_component::{ExtractComponent, ExtractComponentPlugin},
         renderer::RenderDevice,
     },
@@ -27,7 +27,7 @@ impl Plugin for RatatuiCameraReadbackPlugin {
             ExtractComponentPlugin::<RatatuiDepthSender>::default(),
             ExtractComponentPlugin::<RatatuiSobelSender>::default(),
         ))
-        .add_event::<CameraTargetingEvent>()
+        .add_message::<CameraTargetingMessage>()
         .add_observer(handle_ratatui_camera_insert_observer)
         .add_observer(handle_ratatui_subcamera_insert_observer)
         .add_observer(ratatui_depth_readback_insert_observer)
@@ -40,7 +40,7 @@ impl Plugin for RatatuiCameraReadbackPlugin {
             First,
             (
                 create_ratatui_camera_widgets_system,
-                handle_camera_targeting_events_system,
+                handle_camera_targeting_messages_system,
                 (
                     update_ratatui_camera_readback_system,
                     update_ratatui_depth_readback_system,
@@ -62,7 +62,7 @@ impl Plugin for RatatuiCameraReadbackPlugin {
                 send_depth_images_system,
                 send_sobel_images_system,
             )
-                .after(RenderSet::Render),
+                .after(RenderSystems::Render),
         );
     }
 }
@@ -85,56 +85,56 @@ pub struct RatatuiDepthSender(ImageSender);
 #[derive(Component, Deref, DerefMut, Debug)]
 pub struct RatatuiDepthReceiver(ImageReceiver);
 
-#[derive(Event, Debug)]
-pub struct CameraTargetingEvent {
+#[derive(Message, Debug)]
+pub struct CameraTargetingMessage {
     pub targeter_entity: Entity,
     pub target_entity: Entity,
 }
 
 fn handle_ratatui_camera_insert_observer(
-    trigger: Trigger<OnInsert, RatatuiCamera>,
+    insert: On<Insert, RatatuiCamera>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
-    mut camera_targeting_event: EventWriter<CameraTargetingEvent>,
+    mut camera_targeting_messages: MessageWriter<CameraTargetingMessage>,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
-    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
+    if let Ok(ratatui_camera) = ratatui_cameras.get(insert.entity) {
         insert_camera_readback_components(
             commands.reborrow(),
-            trigger.target(),
+            insert.entity,
             &mut image_assets,
             &render_device,
             ratatui_camera,
-            &mut camera_targeting_event,
+            &mut camera_targeting_messages,
         );
     }
 }
 
 fn handle_ratatui_subcamera_insert_observer(
-    trigger: Trigger<OnInsert, RatatuiSubcamera>,
+    insert: On<Insert, RatatuiSubcamera>,
     mut ratatui_subcameras: Query<&RatatuiSubcamera>,
-    mut camera_targeting_event: EventWriter<CameraTargetingEvent>,
+    mut camera_targeting_messages: MessageWriter<CameraTargetingMessage>,
 ) {
-    let RatatuiSubcamera(target_entity) = ratatui_subcameras.get_mut(trigger.target()).unwrap();
+    let RatatuiSubcamera(target_entity) = ratatui_subcameras.get_mut(insert.entity).unwrap();
 
-    camera_targeting_event.write(CameraTargetingEvent {
-        targeter_entity: trigger.target(),
+    camera_targeting_messages.write(CameraTargetingMessage {
+        targeter_entity: insert.entity,
         target_entity: *target_entity,
     });
 }
 
 fn ratatui_depth_readback_insert_observer(
-    trigger: Trigger<OnInsert, RatatuiCameraDepthDetection>,
+    insert: On<Insert, RatatuiCameraDepthDetection>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
-    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
+    if let Ok(ratatui_camera) = ratatui_cameras.get(insert.entity) {
         insert_camera_depth_readback_components(
             commands.reborrow(),
-            trigger.target(),
+            insert.entity,
             &mut image_assets,
             &render_device,
             ratatui_camera,
@@ -143,16 +143,16 @@ fn ratatui_depth_readback_insert_observer(
 }
 
 fn handle_ratatui_edge_detection_insert_observer(
-    trigger: Trigger<OnInsert, RatatuiCameraEdgeDetection>,
+    insert: On<Insert, RatatuiCameraEdgeDetection>,
     mut commands: Commands,
     ratatui_cameras: Query<&RatatuiCamera>,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
-    if let Ok(ratatui_camera) = ratatui_cameras.get(trigger.target()) {
+    if let Ok(ratatui_camera) = ratatui_cameras.get(insert.entity) {
         insert_edge_detection_readback_components(
             commands.reborrow(),
-            trigger.target(),
+            insert.entity,
             &mut image_assets,
             &render_device,
             ratatui_camera,
@@ -161,33 +161,33 @@ fn handle_ratatui_edge_detection_insert_observer(
 }
 
 fn handle_ratatui_camera_removal_observer(
-    trigger: Trigger<OnRemove, RatatuiCamera>,
+    remove: On<Remove, RatatuiCamera>,
     mut commands: Commands,
 ) {
-    let mut entity = commands.entity(trigger.target());
+    let mut entity = commands.entity(remove.entity);
     entity.remove::<(RatatuiCameraSender, RatatuiCameraReceiver)>();
 }
 
 fn ratatui_depth_readback_removal_observer(
-    trigger: Trigger<OnRemove, RatatuiCameraDepthDetection>,
+    remove: On<Remove, RatatuiCameraDepthDetection>,
     mut commands: Commands,
 ) {
-    let mut entity = commands.entity(trigger.target());
+    let mut entity = commands.entity(remove.entity);
     entity.remove::<(RatatuiDepthSender, RatatuiDepthReceiver)>();
 }
 
 fn handle_ratatui_edge_detection_removal_observer(
-    trigger: Trigger<OnRemove, RatatuiCameraEdgeDetection>,
+    remove: On<Remove, RatatuiCameraEdgeDetection>,
     mut commands: Commands,
 ) {
-    let mut entity = commands.entity(trigger.target());
+    let mut entity = commands.entity(remove.entity);
     entity.remove::<(RatatuiSobelSender, RatatuiSobelReceiver)>();
 }
 
 fn update_ratatui_camera_readback_system(
     mut commands: Commands,
     ratatui_cameras: Query<(Entity, &RatatuiCamera), Changed<RatatuiCamera>>,
-    mut camera_targeting_event: EventWriter<CameraTargetingEvent>,
+    mut camera_targeting_messages: MessageWriter<CameraTargetingMessage>,
     mut image_assets: ResMut<Assets<Image>>,
     render_device: Res<RenderDevice>,
 ) {
@@ -198,7 +198,7 @@ fn update_ratatui_camera_readback_system(
             &mut image_assets,
             &render_device,
             ratatui_camera,
-            &mut camera_targeting_event,
+            &mut camera_targeting_messages,
         );
     }
 }
@@ -347,15 +347,15 @@ fn create_ratatui_camera_widgets_system(
 }
 
 fn resize_ratatui_camera_observer(
-    trigger: Trigger<OnReplace, RatatuiCameraWidget>,
+    replace: On<Replace, RatatuiCameraWidget>,
     mut commands: Commands,
     widgets: Query<(&RatatuiCameraWidget, &RatatuiCameraLastArea)>,
     mut ratatui_cameras: Query<&mut RatatuiCamera>,
 ) -> Result {
-    let (widget, last_area) = widgets.get(trigger.target())?;
+    let (widget, last_area) = widgets.get(replace.entity)?;
 
     commands
-        .entity(trigger.target())
+        .entity(replace.entity)
         .insert(RatatuiCameraLastArea(widget.next_last_area));
 
     if last_area.width == widget.next_last_area.width
@@ -364,11 +364,11 @@ fn resize_ratatui_camera_observer(
         return Ok(());
     }
 
-    if !ratatui_cameras.get(trigger.target())?.autoresize {
+    if !ratatui_cameras.get(replace.entity)?.autoresize {
         return Ok(());
     }
 
-    let mut ratatui_camera = ratatui_cameras.get_mut(trigger.target())?;
+    let mut ratatui_camera = ratatui_cameras.get_mut(replace.entity)?;
     ratatui_camera.dimensions = UVec2::new(
         (widget.next_last_area.width as u32 * 2).max(1),
         (widget.next_last_area.height as u32 * 4).max(1),
@@ -380,25 +380,25 @@ fn resize_ratatui_camera_observer(
 // TODO: When observers can be explicitly ordered, use another observer ordered after the
 // RatatuiCamera observers instead.
 //
-/// Handles camera targeting events to point cameras at the correct render targets. An event
+/// Handles camera targeting messages to point cameras at the correct render targets. A message
 /// handler is used here instead of observers to make sure that the render target is created after
 /// the RatatuiCamera insert/update observers run and so the camera entity definitely already has
 /// its RatatuiCameraSender component. Otherwise, for example, if a RatatuiCamera and related
 /// RatatuiSubcamera is spawned in a single system run, we could potentially try to update the
 /// subcamera's render target before the main camera's render texture is created.
-fn handle_camera_targeting_events_system(
+fn handle_camera_targeting_messages_system(
     target_cameras: Query<(&RatatuiCameraSender, Option<&RatatuiSubcameras>), With<RatatuiCamera>>,
     mut cameras: Query<&mut Camera>,
-    mut camera_targeting_events: EventReader<CameraTargetingEvent>,
+    mut camera_targeting_messages: MessageReader<CameraTargetingMessage>,
 ) {
-    for CameraTargetingEvent {
+    for CameraTargetingMessage {
         targeter_entity,
         target_entity,
-    } in camera_targeting_events.read()
+    } in camera_targeting_messages.read()
     {
         let (sender, targeting_subcameras) = target_cameras
             .get(*target_entity)
-            .expect("CameraTargetingEvent sent with invalid targeting entity");
+            .expect("CameraTargetingMessage sent with invalid targeting entity");
 
         let render_target = RenderTarget::from(sender.sender_image.clone());
 
@@ -412,7 +412,7 @@ fn handle_camera_targeting_events_system(
 
         let mut camera = cameras
             .get_mut(*targeter_entity)
-            .expect("CameraTargetingEvent sent with invalid target entity");
+            .expect("CameraTargetingMessage sent with invalid target entity");
 
         camera.target = render_target;
     }
@@ -424,14 +424,14 @@ fn insert_camera_readback_components(
     image_assets: &mut Assets<Image>,
     render_device: &RenderDevice,
     ratatui_camera: &RatatuiCamera,
-    camera_targeting_event: &mut EventWriter<CameraTargetingEvent>,
+    camera_targeting_messages: &mut MessageWriter<CameraTargetingMessage>,
 ) {
     let mut entity_commands = commands.entity(entity);
 
     let (sender, receiver) =
         create_image_pipe(image_assets, render_device, ratatui_camera.dimensions);
 
-    camera_targeting_event.write(CameraTargetingEvent {
+    camera_targeting_messages.write(CameraTargetingMessage {
         targeter_entity: entity,
         target_entity: entity,
     });

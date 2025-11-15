@@ -9,7 +9,7 @@ use bevy::{
         RenderApp,
         render_asset::RenderAssets,
         render_graph::{
-            NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
+            NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
             Buffer, CommandEncoderDescriptor, Extent3d, TexelCopyBufferInfo, TexelCopyBufferLayout,
@@ -60,7 +60,11 @@ impl ViewNode for RatatuiCameraNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (depth_texture, camera_sender, depth_sender, sobel_sender): QueryItem<'w, Self::ViewQuery>,
+        (depth_texture, camera_sender, depth_sender, sobel_sender): QueryItem<
+            'w,
+            '_,
+            Self::ViewQuery,
+        >,
         world: &'w World,
     ) -> Result<(), NodeRunError> {
         let gpu_images = world.get_resource::<RenderAssets<GpuImage>>().unwrap();

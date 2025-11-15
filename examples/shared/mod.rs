@@ -1,7 +1,7 @@
 use bevy::app::AppExit;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
-use bevy_ratatui::event::KeyEvent;
+use bevy_ratatui::event::KeyMessage;
 use bevy_ratatui::kitty::KittyEnabled;
 use crossterm::event::{KeyCode, KeyEventKind};
 use log::LevelFilter;
@@ -135,14 +135,14 @@ pub enum InputState {
 
 #[allow(dead_code)]
 pub fn handle_input_system(
-    mut ratatui_events: EventReader<KeyEvent>,
-    mut exit: EventWriter<AppExit>,
+    mut ratatui_messages: MessageReader<KeyMessage>,
+    mut exit: MessageWriter<AppExit>,
     mut flags: ResMut<Flags>,
     mut input: ResMut<InputState>,
 ) {
-    for key_event in ratatui_events.read() {
-        match key_event.kind {
-            KeyEventKind::Press | KeyEventKind::Repeat => match key_event.code {
+    for key_message in ratatui_messages.read() {
+        match key_message.kind {
+            KeyEventKind::Press | KeyEventKind::Repeat => match key_message.code {
                 KeyCode::Char('q') => {
                     exit.write_default();
                 }
@@ -157,7 +157,7 @@ pub fn handle_input_system(
                 }
                 _ => {}
             },
-            KeyEventKind::Release => match key_event.code {
+            KeyEventKind::Release => match key_message.code {
                 KeyCode::Left => {
                     if let InputState::Left(_) = *input {
                         *input = InputState::None;

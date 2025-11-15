@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiContext;
 use bevy_ratatui::RatatuiPlugins;
-use bevy_ratatui::event::MouseEvent;
+use bevy_ratatui::event::MouseMessage;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui_camera::RatatuiCamera;
 use bevy_ratatui_camera::RatatuiCameraDepthBuffer;
@@ -157,7 +157,7 @@ fn sphere_movement_system(mut cones: Query<&mut Transform, With<ConeMarker>>, ti
 }
 
 fn mouse_follow_system(
-    mut mouse_events: EventReader<MouseEvent>,
+    mut mouse_messages: MessageReader<MouseMessage>,
     ratatui_camera: Single<(
         &Camera,
         &GlobalTransform,
@@ -166,11 +166,11 @@ fn mouse_follow_system(
     )>,
     mut center_cone: Single<&mut Transform, With<CenterConeMarker>>,
 ) {
-    let Some(mouse_position) = mouse_events
+    let Some(mouse_position) = mouse_messages
         .read()
         .last()
-        .filter(|event| matches!(event.kind, MouseEventKind::Moved))
-        .map(|event| IVec2::new(event.column as i32, event.row as i32))
+        .filter(|message| matches!(message.kind, MouseEventKind::Moved))
+        .map(|message| IVec2::new(message.column as i32, message.row as i32))
     else {
         return;
     };

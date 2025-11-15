@@ -103,7 +103,7 @@ pub struct RatatuiSubcameras(Vec<Entity>);
 
 /// System set for the systems that perform this crate's functionality. Because important pieces of
 /// this crate's functionality are provided by components that are not added by the user directly,
-/// but are inserted and updated by this crate's observers and event handlers (e.g.
+/// but are inserted and updated by this crate's observers and message handlers (e.g.
 /// RatatuiCameraWidget), it is important to order your systems relative to this system set to make
 /// sure certain components are present and up-to-date.
 ///

@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy::winit::WinitPlugin;
 use bevy_ratatui::RatatuiContext;
 use bevy_ratatui::RatatuiPlugins;
-use bevy_ratatui::event::KeyEvent;
+use bevy_ratatui::event::KeyMessage;
 use bevy_ratatui::kitty::KittyEnabled;
 use bevy_ratatui_camera::HalfBlocksConfig;
 use bevy_ratatui_camera::LuminanceConfig;
@@ -96,15 +96,15 @@ pub enum CameraState {
 
 pub fn handle_input_system(
     world: &mut World,
-    system_state: &mut SystemState<EventReader<KeyEvent>>,
+    system_state: &mut SystemState<MessageReader<KeyMessage>>,
     mut camera_state: Local<CameraState>,
 ) -> Result {
-    let mut event_reader = system_state.get_mut(world);
-    let events: Vec<_> = event_reader.read().cloned().collect();
+    let mut message_reader = system_state.get_mut(world);
+    let messages: Vec<_> = message_reader.read().cloned().collect();
 
-    for key_event in events.iter() {
-        if let KeyEventKind::Press = key_event.kind {
-            if let KeyCode::Char(' ') = key_event.code {
+    for key_message in messages.iter() {
+        if let KeyEventKind::Press = key_message.kind {
+            if let KeyCode::Char(' ') = key_message.code {
                 match *camera_state {
                     CameraState::Start => {
                         world.run_system_cached(toggle_ratatui_camera_strategy)?;

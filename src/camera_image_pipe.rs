@@ -4,7 +4,7 @@ use bevy::{
     prelude::*,
     render::{
         render_resource::{
-            Buffer, BufferDescriptor, BufferUsages, Extent3d, Maintain, MapMode, TextureDimension,
+            Buffer, BufferDescriptor, BufferUsages, Extent3d, MapMode, PollType, TextureDimension,
             TextureFormat, TextureUsages,
         },
         renderer::RenderDevice,
@@ -115,7 +115,7 @@ pub fn send_image_buffer(render_device: &RenderDevice, buffer: &Buffer, sender: 
         Err(err) => panic!("failed to map buffer: {err}"),
     });
 
-    render_device.poll(Maintain::wait()).panic_on_timeout();
+    let _ = render_device.poll(PollType::wait());
 
     r.recv().expect("failed to receive the map_async message");
 
@@ -136,7 +136,8 @@ pub fn receive_image(image_receiver: &mut ImageReceiver) {
                 .receiver_image
                 .texture_descriptor
                 .format
-                .pixel_size();
+                .pixel_size()
+                .expect("Image receiver received a compressed image.");
 
         let aligned_row_bytes = RenderDevice::align_copy_bytes_per_row(row_bytes);
 

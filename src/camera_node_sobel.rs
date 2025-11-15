@@ -3,22 +3,22 @@ use std::path::Path;
 use bevy::{
     asset::{AssetPath, embedded_asset, io::AssetSourceId},
     core_pipeline::{
+        FullscreenShader,
         core_3d::{
             DEPTH_TEXTURE_SAMPLING_SUPPORTED,
             graph::{Core3d, Node3d},
         },
-        fullscreen_vertex_shader::fullscreen_shader_vertex_state,
         prepass::ViewPrepassTextures,
     },
     ecs::query::QueryItem,
     platform::collections::HashMap,
     prelude::*,
     render::{
-        Render, RenderApp, RenderSet,
+        Render, RenderApp, RenderSystems,
         extract_component::ExtractComponentPlugin,
         render_asset::RenderAssets,
         render_graph::{
-            NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel, ViewNode, ViewNodeRunner,
+            NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
             BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedPipelineState,
@@ -52,7 +52,7 @@ impl Plugin for RatatuiCameraNodeSobelPlugin {
 
         render_app.add_systems(
             Render,
-            prepare_config_buffer_system.in_set(RenderSet::Prepare),
+            prepare_config_buffer_system.in_set(RenderSystems::Prepare),
         );
 
         render_app
@@ -92,6 +92,7 @@ impl ViewNode for RatatuiCameraNodeSobel {
         render_context: &mut RenderContext<'w>,
         (entity, view_target, prepass_textures, view_uniform_offset, sobel_sender): QueryItem<
             'w,
+            '_,
             Self::ViewQuery,
         >,
         world: &'w World,
@@ -149,6 +150,7 @@ impl ViewNode for RatatuiCameraNodeSobel {
                 view: &destination.texture_view,
                 resolve_target: None,
                 ops: Operations::default(),
+                depth_slice: None,
             })],
             ..default()
         });
@@ -244,6 +246,7 @@ impl FromWorld for RatatuiCameraNodeSobelPipeline {
         let asset_path = AssetPath::from_path(&path).with_source(source);
         let shader_handle: Handle<Shader> = world.load_asset(asset_path);
 
+        let vertex_state = world.resource::<FullscreenShader>().to_vertex_state();
         let pipeline_cache = world.resource_mut::<PipelineCache>();
 
         let mut shader_defs = Vec::new();
@@ -255,11 +258,11 @@ impl FromWorld for RatatuiCameraNodeSobelPipeline {
         let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
             label: Some("ratatui_camera_node_sobel_pipeline".into()),
             layout: vec![layout.clone()],
-            vertex: fullscreen_shader_vertex_state(),
+            vertex: vertex_state,
             fragment: Some(FragmentState {
                 shader: shader_handle,
                 shader_defs,
-                entry_point: "fragment".into(),
+                entry_point: Some("fragment".into()),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
                     blend: None,

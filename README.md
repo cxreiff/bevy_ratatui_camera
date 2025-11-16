@@ -232,6 +232,7 @@ depend on the terminal and on user configuration.
 
 | bevy  | bevy_ratatui_camera |
 |-------|---------------------|
+| 0.17  | 0.16                |
 | 0.16  | 0.15                |
 | 0.15  | 0.12                |
 | 0.14  | 0.6                 |

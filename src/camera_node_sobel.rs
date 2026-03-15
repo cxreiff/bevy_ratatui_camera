@@ -21,12 +21,12 @@ use bevy::{
             NodeRunError, RenderGraphContext, RenderGraphExt, RenderLabel, ViewNode, ViewNodeRunner,
         },
         render_resource::{
-            BindGroupEntries, BindGroupLayout, BindGroupLayoutEntries, CachedPipelineState,
-            CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState, MultisampleState,
-            Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment,
-            RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType,
-            SamplerDescriptor, ShaderStages, ShaderType, TextureFormat, TextureSampleType,
-            UniformBuffer,
+            BindGroupEntries, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntries,
+            CachedPipelineState, CachedRenderPipelineId, ColorTargetState, ColorWrites,
+            FragmentState, MultisampleState, Operations, PipelineCache, PrimitiveState,
+            RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor, Sampler,
+            SamplerBindingType, SamplerDescriptor, ShaderStages, ShaderType, TextureFormat,
+            TextureSampleType, UniformBuffer,
             binding_types::{
                 sampler, texture_2d, texture_depth_2d, uniform_buffer, uniform_buffer_sized,
             },
@@ -219,24 +219,26 @@ impl FromWorld for RatatuiCameraNodeSobelPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
 
+        let layout_entries = BindGroupLayoutEntries::sequential(
+            ShaderStages::FRAGMENT,
+            (
+                // rendered texture
+                texture_2d(TextureSampleType::Float { filterable: true }),
+                sampler(SamplerBindingType::Filtering),
+                // depth prepass
+                texture_depth_2d(),
+                // normal prepass
+                texture_2d(TextureSampleType::Float { filterable: true }),
+                // view
+                uniform_buffer::<ViewUniform>(true),
+                // config
+                uniform_buffer_sized(false, None),
+            ),
+        );
+
         let layout = render_device.create_bind_group_layout(
             "ratatui_camera_node_sobel_bind_group_layout",
-            &BindGroupLayoutEntries::sequential(
-                ShaderStages::FRAGMENT,
-                (
-                    // rendered texture
-                    texture_2d(TextureSampleType::Float { filterable: true }),
-                    sampler(SamplerBindingType::Filtering),
-                    // depth prepass
-                    texture_depth_2d(),
-                    // normal prepass
-                    texture_2d(TextureSampleType::Float { filterable: true }),
-                    // view
-                    uniform_buffer::<ViewUniform>(true),
-                    // config
-                    uniform_buffer_sized(false, None),
-                ),
-            ),
+            &layout_entries,
         );
 
         let sampler = render_device.create_sampler(&SamplerDescriptor::default());
@@ -257,7 +259,10 @@ impl FromWorld for RatatuiCameraNodeSobelPipeline {
 
         let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
             label: Some("ratatui_camera_node_sobel_pipeline".into()),
-            layout: vec![layout.clone()],
+            layout: vec![BindGroupLayoutDescriptor {
+                label: "ratatui_camera_node_sobel_bind_group_layout".into(),
+                entries: layout_entries.to_vec(),
+            }],
             vertex: vertex_state,
             fragment: Some(FragmentState {
                 shader: shader_handle,

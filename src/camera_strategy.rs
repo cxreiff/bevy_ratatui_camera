@@ -384,7 +384,7 @@ pub struct ColorsConfig {
     /// to `Color::Indexed(6)` (the equivalent indexed color for cyan).
     ///
     /// Reference for terminal color support:
-    /// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+    /// <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>
     pub support: ColorSupport,
 }
 

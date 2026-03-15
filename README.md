@@ -9,7 +9,7 @@
 <img src="https://assets.cxreiff.com/github/cube.gif" width="30%" alt="cube">
 <img src="https://assets.cxreiff.com/github/foxes.gif" width="30%" alt="foxes">
 <img src="https://assets.cxreiff.com/github/sponza.gif" width="30%" alt="sponza test scene">
-<p>
+</p>
 
 Bevy inside the terminal!
 

@@ -387,8 +387,8 @@ fn resize_ratatui_camera_observer(
 /// RatatuiSubcamera is spawned in a single system run, we could potentially try to update the
 /// subcamera's render target before the main camera's render texture is created.
 fn handle_camera_targeting_messages_system(
+    mut commands: Commands,
     target_cameras: Query<(&RatatuiCameraSender, Option<&RatatuiSubcameras>), With<RatatuiCamera>>,
-    mut cameras: Query<&mut Camera>,
     mut camera_targeting_messages: MessageReader<CameraTargetingMessage>,
 ) {
     for CameraTargetingMessage {
@@ -404,17 +404,13 @@ fn handle_camera_targeting_messages_system(
 
         if let Some(targeting_subcameras) = targeting_subcameras {
             for targeting_subcamera in targeting_subcameras.iter() {
-                if let Ok(mut camera) = cameras.get_mut(targeting_subcamera) {
-                    camera.target = render_target.clone()
-                }
+                commands
+                    .entity(targeting_subcamera)
+                    .insert(render_target.clone());
             }
         }
 
-        let mut camera = cameras
-            .get_mut(*targeter_entity)
-            .expect("CameraTargetingMessage sent with invalid target entity");
-
-        camera.target = render_target;
+        commands.entity(*targeter_entity).insert(render_target);
     }
 }
 

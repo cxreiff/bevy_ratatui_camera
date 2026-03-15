@@ -1,3 +1,5 @@
+#![doc(html_root_url = "https://docs.rs/bevy_ratatui_camera/0.17.0")]
+#![doc = include_str!("../README.md")]
 #![warn(missing_debug_implementations, missing_docs)]
 
 //! Bevy rendered to the terminal!

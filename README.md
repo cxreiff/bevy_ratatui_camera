@@ -9,7 +9,7 @@
 <img src="https://assets.cxreiff.com/github/cube.gif" width="30%" alt="cube">
 <img src="https://assets.cxreiff.com/github/foxes.gif" width="30%" alt="foxes">
 <img src="https://assets.cxreiff.com/github/sponza.gif" width="30%" alt="sponza test scene">
-<p>
+</p>
 
 Bevy inside the terminal!
 
@@ -232,6 +232,7 @@ depend on the terminal and on user configuration.
 
 | bevy  | bevy_ratatui_camera |
 |-------|---------------------|
+| 0.18  | 0.17                |
 | 0.17  | 0.16                |
 | 0.16  | 0.15                |
 | 0.15  | 0.12                |

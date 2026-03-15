@@ -1,7 +1,7 @@
 [package]
 name = "bevy_ratatui_camera"
 description = "A bevy plugin for rendering your bevy app to the terminal using ratatui."
-version = "0.16.0"
+version = "0.17.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/cxreiff/bevy_ratatui_camera"
@@ -11,16 +11,16 @@ categories = ["game-engines", "gui", "rendering", "command-line-interface"]
 keywords = ["bevy", "ratatui", "terminal", "tui", "render"]
 
 [dependencies]
-bevy = "0.17"
+bevy = "0.18"
 crossbeam-channel = "0.5.15"
-ratatui = { version = "0.29.0", default-features = false, features = ["unstable-widget-ref"] }
+ratatui = { version = "0.30.0", default-features = false, features = ["unstable-widget-ref"] }
 image = "0.25.6"
 log = "0.4.27"
 
 [dev-dependencies]
-crossterm = "0.28.1"
-bevy_ratatui = "0.10.0"
-tui-logger = "0.17.2"
+crossterm = "0.29.0"
+bevy_ratatui = "0.11.1"
+tui-logger = "0.18.1"
 
 [features]
 windowed = ["bevy_ratatui/windowed"]

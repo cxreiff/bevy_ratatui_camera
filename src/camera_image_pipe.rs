@@ -115,7 +115,7 @@ pub fn send_image_buffer(render_device: &RenderDevice, buffer: &Buffer, sender: 
         Err(err) => panic!("failed to map buffer: {err}"),
     });
 
-    let _ = render_device.poll(PollType::wait());
+    let _ = render_device.poll(PollType::wait_indefinitely());
 
     r.recv().expect("failed to receive the map_async message");
 

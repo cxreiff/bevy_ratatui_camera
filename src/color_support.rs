@@ -65,7 +65,7 @@ const ANSI_COLORS_256: [[u8; 3]; 256] = generate_ansi_colors_256();
 /// rendered pixels to terminal characters.
 ///
 /// Reference for terminal color support:
-/// https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
+/// <https://en.wikipedia.org/wiki/ANSI_escape_code#Colors>
 #[derive(Clone, Copy, Debug, Default)]
 pub enum ColorSupport {
     /// Any 24-bit color, represented by ratatui's `Color::Rgb` enum variant.

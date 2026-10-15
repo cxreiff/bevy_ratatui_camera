@@ -5,8 +5,8 @@ use crate::{ColorChoice, RatatuiCameraEdgeDetection};
 
 pub fn coords_from_index(index: usize, image: &DynamicImage) -> (u16, u16) {
     (
-        index as u16 % image.width() as u16,
-        index as u16 / image.width() as u16,
+        (index % image.width() as usize) as u16,
+        (index / image.width() as usize) as u16,
     )
 }
 

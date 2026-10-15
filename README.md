@@ -135,7 +135,7 @@ color/depth/normal thresholds for good results.
 ```rust
 RatatuiCameraEdgeDetection {
     thickness: 1.4,
-    edge_characters: Self::Directional {
+    edge_characters: EdgeCharacters::Directional {
         vertical: '|',
         horizontal: '―',
         forward_diagonal: '/',
@@ -194,7 +194,7 @@ rendering. Because of this, if you have both traits imported, you may need to
 resolve ambiguous trait resolution with fully qualified syntax:
 
 ```rust
-<widget as StatefulWidget>::render(...);
+StatefulWidget::render(&mut *widget, area, frame.buffer_mut(), depth_buffer);
 ```
 
 ## multiple cameras
@@ -223,7 +223,7 @@ display correctly:
 ...but any terminal with 24-bit color support should work fine, if its
 performance is adequate.
 
-You can also use the `color_support` option in `RatatuiCameraStrategy` to
+You can also use the `colors.support` option in a `RatatuiCameraStrategy` configuration to
 convert colors to a more limited ANSI sets, in order to target terminals with
 more limited color support, but results may be inconsistent as ANSI colors can
 depend on the terminal and on user configuration.

@@ -29,7 +29,8 @@ const fn generate_ansi_colors_256() -> [[u8; 3]; 256] {
         i += 1;
     }
 
-    // next 216 colors are a 6x6x6 color cube.
+    // xterm's 6x6x6 color cube uses nonuniform channel levels.
+    let levels = [0, 95, 135, 175, 215, 255];
     let mut r: u8 = 0;
     while r < 6 {
         let mut g: u8 = 0;
@@ -37,7 +38,8 @@ const fn generate_ansi_colors_256() -> [[u8; 3]; 256] {
             let mut b: u8 = 0;
             while b < 6 {
                 let index = 16 + (r * 36) + (g * 6) + b;
-                colors[index as usize] = [r * 51, g * 51, b * 51];
+                colors[index as usize] =
+                    [levels[r as usize], levels[g as usize], levels[b as usize]];
                 b += 1;
             }
             g += 1;
@@ -154,5 +156,37 @@ const fn ratatui_color_from_ansi_index(index: u8) -> Color {
         14 => Color::LightCyan,
         15 => Color::White,
         16..=255 => Color::Indexed(index),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn xterm_cube_colors_select_their_exact_indices() {
+        for (rgb, index) in [
+            ([95, 0, 0], 52),
+            ([0, 135, 0], 28),
+            ([0, 0, 175], 19),
+            ([215, 95, 135], 168),
+        ] {
+            assert_eq!(
+                color_to_ansi_256(Color::Rgb(rgb[0], rgb[1], rgb[2])),
+                Color::Indexed(index)
+            );
+        }
+    }
+
+    #[test]
+    fn named_indexed_and_true_colors_keep_their_contracts() {
+        assert_eq!(color_to_ansi_256(Color::Cyan), Color::Cyan);
+        assert_eq!(color_to_ansi_256(Color::Indexed(52)), Color::Indexed(52));
+        assert_eq!(
+            color_for_color_support(Some(Color::Rgb(95, 0, 0)), ColorSupport::TrueColor),
+            Some(Color::Rgb(95, 0, 0))
+        );
+        assert_eq!(color_to_ansi_256(Color::Rgb(8, 8, 8)), Color::Indexed(232));
+        assert_eq!(color_to_ansi_16(Color::Indexed(52)), Color::Red);
     }
 }

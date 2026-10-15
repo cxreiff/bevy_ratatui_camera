@@ -35,10 +35,10 @@ impl Plugin for RatatuiCameraReadbackPlugin {
         .add_observer(handle_ratatui_camera_removal_observer)
         .add_observer(ratatui_depth_readback_removal_observer)
         .add_observer(handle_ratatui_edge_detection_removal_observer)
-        .add_observer(resize_ratatui_camera_observer)
         .add_systems(
             First,
             (
+                resize_ratatui_cameras_system,
                 create_ratatui_camera_widgets_system,
                 handle_camera_targeting_messages_system,
                 (
@@ -346,35 +346,25 @@ fn create_ratatui_camera_widgets_system(
     }
 }
 
-fn resize_ratatui_camera_observer(
-    replace: On<Replace, RatatuiCameraWidget>,
-    mut commands: Commands,
-    widgets: Query<(&RatatuiCameraWidget, &RatatuiCameraLastArea)>,
-    mut ratatui_cameras: Query<&mut RatatuiCamera>,
-) -> Result {
-    let (widget, last_area) = widgets.get(replace.entity)?;
+fn resize_ratatui_cameras_system(
+    mut cameras: Query<(
+        &RatatuiCameraWidget,
+        &mut RatatuiCameraLastArea,
+        &mut RatatuiCamera,
+    )>,
+) {
+    for (widget, mut last_area, mut camera) in &mut cameras {
+        let size_changed = last_area.width != widget.next_last_area.width
+            || last_area.height != widget.next_last_area.height;
+        last_area.0 = widget.next_last_area;
 
-    commands
-        .entity(replace.entity)
-        .insert(RatatuiCameraLastArea(widget.next_last_area));
-
-    if last_area.width == widget.next_last_area.width
-        && last_area.height == widget.next_last_area.height
-    {
-        return Ok(());
+        if size_changed && camera.autoresize {
+            camera.dimensions = UVec2::new(
+                (widget.next_last_area.width as u32 * 2).max(1),
+                (widget.next_last_area.height as u32 * 4).max(1),
+            );
+        }
     }
-
-    if !ratatui_cameras.get(replace.entity)?.autoresize {
-        return Ok(());
-    }
-
-    let mut ratatui_camera = ratatui_cameras.get_mut(replace.entity)?;
-    ratatui_camera.dimensions = UVec2::new(
-        (widget.next_last_area.width as u32 * 2).max(1),
-        (widget.next_last_area.height as u32 * 4).max(1),
-    );
-
-    Ok(())
 }
 
 // TODO: When observers can be explicitly ordered, use another observer ordered after the
